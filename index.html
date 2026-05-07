@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- SCRIPT KIỂM TRA ĐĂNG NHẬP (PHẢI ĐẶT Ở ĐẦU) -->
     <script>
         const currentUser = JSON.parse(localStorage.getItem('user'));
         if (!currentUser) {
@@ -17,25 +16,36 @@
     </script>
 
     <div class="app-container">
-        <header>
-            <div class="header-main">
-                <h1><i class="fas fa-leaf"></i> QUẢN LÝ NÔNG SẢN</h1>
-                <p>Hệ thống truy xuất nguồn gốc dữ liệu thực</p>
+        <nav class="side-nav">
+            <div class="nav-logo">
+                <i class="fas fa-seedling"></i>
+                <span>AGRI-ADMIN</span>
             </div>
-            
-            <!-- HIỂN THỊ THÔNG TIN NHÂN VIÊN -->
-            <div class="user-info-bar">
-                <div class="user-details">
-                    <span class="user-name"><i class="fas fa-user-circle"></i> <span id="display-name">---</span></span>
-                    <span class="user-role" id="display-role">---</span>
-                </div>
-                <button class="btn-logout" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </header>
+            <a href="index.html" class="active"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
+            <a href="#"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
+            <hr style="border: 0; border-top: 1px solid #1e293b; margin: 20px 0;">
+            <button class="btn-logout-sidebar" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+        </nav>
 
         <main>
+            <header>
+                <div class="header-main">
+                    <h1>QUẢN LÝ NÔNG SẢN</h1>
+                    <p>Hệ thống truy xuất nguồn gốc dữ liệu thực</p>
+                </div>
+                
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                </div>
+            </header>
+
             <div class="control-panel">
                 <button id="fetchBtn" onclick="loadData()">
                     <i class="fas fa-sync-alt"></i> Tải dữ liệu
@@ -89,7 +99,7 @@
                             <th>Số lượng</th>
                             <th>Giá (VNĐ)</th>
                             <th>Xuất Xứ</th>
-                            <th>Thao tác</th>
+                            <th style="width: 120px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="data-content"></tbody>
@@ -98,7 +108,6 @@
         </main>
     </div>
 
-    <!-- MODAL FORM (THÊM/SỬA) -->
     <div id="crudModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -131,7 +140,7 @@
         let isEditMode = false;
         const apiBase = "https://demo-xo8t.onrender.com/api/nongsan";
 
-        // HIỂN THỊ THÔNG TIN USER KHI LOAD TRANG
+        // Khởi tạo trang
         window.onload = function() {
             if (currentUser) {
                 document.getElementById('display-name').innerText = currentUser.hoTen;
@@ -141,13 +150,12 @@
         };
 
         function logout() {
-            if(confirm("Bro muốn đăng xuất à?")) {
+            if(confirm("Bro chắc chắn muốn thoát hệ thống?")) {
                 localStorage.removeItem('user');
                 window.location.href = 'login.html';
             }
         }
 
-        // --- CÁC HÀM CRUD & LOGIC (GIỮ NGUYÊN BẢN TRƯỚC) ---
         async function loadData() {
             const status = document.getElementById('status-message');
             const btn = document.getElementById('fetchBtn');
@@ -163,7 +171,7 @@
                 status.innerText = `✅ Đã tải ${allData.length} sản phẩm.`;
                 status.className = "status success";
             } catch (error) {
-                status.innerText = "❌ Không thể tải dữ liệu.";
+                status.innerText = "❌ Không thể tải dữ liệu!";
                 status.className = "status error";
             } finally {
                 btn.disabled = false;
@@ -173,6 +181,10 @@
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
             tbody.innerHTML = "";
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Không tìm thấy sản phẩm phù hợp</td></tr>';
+                return;
+            }
             data.forEach(item => {
                 const row = `<tr>
                     <td><span class="badge">${item.maNS}</span></td>
@@ -192,7 +204,7 @@
 
         function openModal(edit = false) {
             isEditMode = edit;
-            document.getElementById('modalTitle').innerText = edit ? "Cập Nhật Thông Tin" : "Thêm Nông Sản Mới";
+            document.getElementById('modalTitle').innerText = edit ? "Cập Nhật Nông Sản" : "Thêm Nông Sản Mới";
             document.getElementById('maNS').disabled = edit;
             document.getElementById('crudModal').style.display = "flex";
             if (!edit) clearForm();
@@ -210,6 +222,7 @@
                 gia: parseFloat(document.getElementById('gia').value) || 0,
                 xuatXu: document.getElementById('xuatXu').value
             };
+
             const method = isEditMode ? "PUT" : "POST";
             const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
 
@@ -219,22 +232,29 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
+                
                 if (response.ok) {
                     alert("Thành công!");
                     closeModal();
                     loadData();
+                } else if (response.status === 400 || response.status === 409) {
+                    alert("Lỗi: Mã nông sản đã tồn tại!");
                 } else {
-                    alert("Lỗi: Mã đã tồn tại hoặc server từ chối!");
+                    alert("Lỗi hệ thống khi lưu!");
                 }
-            } catch (error) { alert("Lỗi kết nối!"); }
+            } catch (error) { alert("Lỗi kết nối API!"); }
         }
 
         async function deleteItem(id) {
             if (confirm(`Xóa mã ${id}?`)) {
                 try {
                     const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
-                    if (response.ok) { loadData(); } 
-                    else { alert("Lỗi Cascade: Hãy kiểm tra liên kết dữ liệu!"); }
+                    if (response.ok) {
+                        alert("Đã xóa thành công!");
+                        loadData();
+                    } else if (response.status === 409) {
+                        alert("Không thể xóa: Có dữ liệu liên quan ở bảng khác!");
+                    }
                 } catch (error) { alert("Lỗi kết nối!"); }
             }
         }
@@ -242,9 +262,12 @@
         function editItem(id) {
             const item = allData.find(i => i.maNS === id);
             if (item) {
-                ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(key => {
-                    document.getElementById(key).value = item[key];
-                });
+                document.getElementById('maNS').value = item.maNS;
+                document.getElementById('tenNS').value = item.tenNS;
+                document.getElementById('loai').value = item.loai;
+                document.getElementById('soLuong').value = item.soLuong;
+                document.getElementById('gia').value = item.gia;
+                document.getElementById('xuatXu').value = item.xuatXu;
                 openModal(true);
             }
         }
@@ -252,19 +275,23 @@
         function toggleSortID() {
             isIDAscending = !isIDAscending;
             allData.sort((a, b) => isIDAscending ? a.maNS.localeCompare(b.maNS) : b.maNS.localeCompare(a.maNS));
+            document.getElementById('sortIDBtn').innerHTML = isIDAscending ? '<i class="fas fa-sort-alpha-up"></i> Mã' : '<i class="fas fa-sort-alpha-down"></i> Mã';
             renderTable(allData);
         }
 
         function toggleSortPrice() {
             isAscending = !isAscending;
             allData.sort((a, b) => isAscending ? (a.gia - b.gia) : (b.gia - a.gia));
+            document.getElementById('sortBtn').innerHTML = isAscending ? '<i class="fas fa-sort-numeric-up"></i> Giá' : '<i class="fas fa-sort-numeric-down"></i> Giá';
             renderTable(allData);
         }
 
         function filterData() {
-            const name = document.getElementById('searchInput').value.toLowerCase();
-            const loai = document.getElementById('filterLoai').value;
-            const filtered = allData.filter(i => i.tenNS.toLowerCase().includes(name) && (loai === "" || i.loai === loai));
+            const nameSearch = document.getElementById('searchInput').value.toLowerCase();
+            const loaiFilter = document.getElementById('filterLoai').value;
+            const filtered = allData.filter(item => {
+                return item.tenNS.toLowerCase().includes(nameSearch) && (loaiFilter === "" || item.loai === loaiFilter);
+            });
             renderTable(filtered);
         }
 

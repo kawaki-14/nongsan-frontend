@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý - Nhà Cung Cấp</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- KIỂM TRA ĐĂNG NHẬP -->
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div class="app-container">
+        <!-- THANH ĐIỀU HƯỚNG BÊN CẠNH (SIDEBAR) -->
+        <nav class="side-nav">
+            <div class="nav-logo">
+                <i class="fas fa-seedling"></i>
+                <span>AGRI-ADMIN</span>
+            </div>
+            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html" class="active"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
+            <a href="#"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
+            <hr>
+            <button class="btn-logout-sidebar" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Thoát
+            </button>
+        </nav>
+
+        <main>
+            <header>
+                <div class="header-main">
+                    <h1>QUẢN LÝ NHÀ CUNG CẤP</h1>
+                    <p>Danh mục đối tác cung ứng hệ thống</p>
+                </div>
+                
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="control-panel">
+                <button id="fetchBtn" onclick="loadData()">
+                    <i class="fas fa-sync-alt"></i> Làm mới
+                </button>
+                <button class="btn-tool btn-add" onclick="openModal()">
+                    <i class="fas fa-plus-circle"></i> Thêm Nhà Cung Cấp
+                </button>
+            </div>
+
+            <div class="search-box">
+                <div class="input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm tên nhà cung cấp..." onkeyup="filterData()">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-filter"></i>
+                    <select id="filterLoaiHinh" onchange="filterData()">
+                        <option value="">Tất cả loại hình</option>
+                        <option value="Sản xuất">Sản xuất</option>
+                        <option value="Phân phối">Phân phối</option>
+                        <option value="Bán buôn">Bán buôn</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="status-message" class="status">Đang tải dữ liệu...</div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã NCC</th>
+                            <th>Tên Nhà Cung Cấp</th>
+                            <th>Địa Chỉ</th>
+                            <th>Loại Hình</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ncc-content"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL FORM (THÊM/SỬA) -->
+    <div id="crudModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Thêm Nhà Cung Cấp</h2>
+            <div class="form-group">
+                <label>Mã Nhà Cung Cấp:</label>
+                <input type="text" id="maNCC" placeholder="Ví dụ: NCC01">
+                <label>Tên Nhà Cung Cấp:</label>
+                <input type="text" id="tenNCC" placeholder="Tên công ty/hộ kinh doanh">
+                <label>Địa Chỉ:</label>
+                <input type="text" id="diaChi" placeholder="Địa chỉ trụ sở">
+                <label>Loại Hình:</label>
+                <select id="loaiHinh">
+                    <option value="Sản xuất">Sản xuất</option>
+                    <option value="Phân phối">Phân phối</option>
+                    <option value="Bán buôn">Bán buôn</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button onclick="saveData()" class="btn-save">Lưu dữ liệu</button>
+                <button onclick="closeModal()" class="btn-cancel">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let isEditMode = false;
+        const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
+
+        window.onload = function() {
+            if (currentUser) {
+                document.getElementById('display-name').innerText = currentUser.hoTen;
+                document.getElementById('display-role').innerText = currentUser.chucVu;
+            }
+            loadData();
+        };
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        async function loadData() {
+            const status = document.getElementById('status-message');
+            try {
+                const response = await fetch(`${apiBase}/all`);
+                allData = await response.json();
+                renderTable(allData);
+                status.innerText = `✅ Tìm thấy ${allData.length} nhà cung cấp.`;
+                status.className = "status success";
+            } catch (error) {
+                status.innerText = "❌ Lỗi tải dữ liệu!";
+                status.className = "status error";
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('ncc-content');
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                const row = `<tr>
+                    <td><span class="badge">${item.maNCC}</span></td>
+                    <td class="font-bold">${item.tenNCC}</td>
+                    <td>${item.diaChi}</td>
+                    <td><span class="type-tag">${item.loaiHinh}</span></td>
+                    <td>
+                        <button class="action-btn edit" onclick="editItem('${item.maNCC}')"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete" onclick="deleteItem('${item.maNCC}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function openModal(edit = false) {
+            isEditMode = edit;
+            document.getElementById('modalTitle').innerText = edit ? "Sửa Nhà Cung Cấp" : "Thêm Nhà Cung Cấp";
+            document.getElementById('maNCC').disabled = edit;
+            document.getElementById('crudModal').style.display = "flex";
+            if (!edit) {
+                ['maNCC', 'tenNCC', 'diaChi', 'loaiHinh'].forEach(id => document.getElementById(id).value = "");
+            }
+        }
+
+        function closeModal() { document.getElementById('crudModal').style.display = "none"; }
+
+        async function saveData() {
+            const payload = {
+                maNCC: document.getElementById('maNCC').value,
+                tenNCC: document.getElementById('tenNCC').value,
+                diaChi: document.getElementById('diaChi').value,
+                loaiHinh: document.getElementById('loaiHinh').value
+            };
+
+            const url = isEditMode ? `${apiBase}/update/${payload.maNCC}` : `${apiBase}/add`;
+            const method = isEditMode ? "PUT" : "POST";
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    closeModal();
+                    loadData();
+                } else {
+                    alert("Lỗi: Mã NCC đã tồn tại hoặc dữ liệu không hợp lệ!");
+                }
+            } catch (error) { alert("Lỗi kết nối!"); }
+        }
+
+        async function deleteItem(id) {
+            if (confirm(`Bro chắc chắn muốn xóa đối tác ${id} không?`)) {
+                try {
+                    const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
+                    if (response.ok) loadData();
+                    else alert("Không thể xóa nhà cung cấp đang có hàng trong kho!");
+                } catch (error) { alert("Lỗi kết nối!"); }
+            }
+        }
+
+        function editItem(id) {
+            const item = allData.find(i => i.maNCC === id);
+            if (item) {
+                document.getElementById('maNCC').value = item.maNCC;
+                document.getElementById('tenNCC').value = item.tenNCC;
+                document.getElementById('diaChi').value = item.diaChi;
+                document.getElementById('loaiHinh').value = item.loaiHinh;
+                openModal(true);
+            }
+        }
+
+        function filterData() {
+            const name = document.getElementById('searchInput').value.toLowerCase();
+            const loai = document.getElementById('filterLoaiHinh').value;
+            const filtered = allData.filter(i => 
+                i.tenNCC.toLowerCase().includes(name) && (loai === "" || i.loaiHinh === loai)
+            );
+            renderTable(filtered);
+        }
+    </script>
+</body>
+</html>

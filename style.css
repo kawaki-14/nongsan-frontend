@@ -402,3 +402,68 @@ header {
     .btn-logout:hover {
         background: #b91c1c;
     }
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.side-nav {
+    width: 240px;
+    background: #0f172a;
+    border-right: 1px solid #1e293b;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #10b981;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.side-nav a {
+    color: #94a3b8;
+    text-decoration: none;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .side-nav a:hover, .side-nav a.active {
+        background: #1e293b;
+        color: #10b981;
+    }
+
+.btn-logout-sidebar {
+    margin-top: auto;
+    background: #1e293b;
+    color: #f87171;
+    border: 1px solid #f87171;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.type-tag {
+    background: #334155;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+}
+
+main {
+    flex: 1;
+    padding: 30px;
+    background: #0b1120;
+}
