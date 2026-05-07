@@ -44,8 +44,11 @@
                 </div>
 
                 <div class="button-group">
+                    <button id="sortIDBtn" onclick="toggleSortID()" class="btn-tool">
+                        <i class="fas fa-sort-alpha-down"></i> Mã
+                    </button>
                     <button id="sortBtn" onclick="toggleSortPrice()" class="btn-tool">
-                        <i class="fas fa-sort"></i> Giá
+                        <i class="fas fa-sort-numeric-down"></i> Giá
                     </button>
                     <button onclick="clearFilters()" class="btn-tool btn-clear" title="Xóa bộ lọc">
                         <i class="fas fa-eraser"></i>
@@ -68,8 +71,7 @@
                             <th>Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody id="data-content">
-                        </tbody>
+                    <tbody id="data-content"></tbody>
                 </table>
             </div>
         </main>
@@ -103,10 +105,10 @@
     <script>
         let allData = [];
         let isAscending = true;
+        let isIDAscending = true;
         let isEditMode = false;
         const apiBase = "https://demo-xo8t.onrender.com/api/nongsan";
 
-        // 1. TẢI DỮ LIỆU
         async function loadData() {
             const status = document.getElementById('status-message');
             const btn = document.getElementById('fetchBtn');
@@ -122,14 +124,13 @@
                 status.innerText = `✅ Đã tải ${allData.length} sản phẩm.`;
                 status.className = "status success";
             } catch (error) {
-                status.innerText = "❌ Không thể tải dữ liệu. Server đang ngủ!";
+                status.innerText = "❌ Không thể tải dữ liệu.";
                 status.className = "status error";
             } finally {
                 btn.disabled = false;
             }
         }
 
-        // 2. VẼ BẢNG
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
             tbody.innerHTML = "";
@@ -146,32 +147,26 @@
                     <td class="text-green">${item.gia ? item.gia.toLocaleString() : 0} đ</td>
                     <td>${item.xuatXu}</td>
                     <td>
-                        <button class="action-btn edit" onclick="editItem('${item.maNS}')" title="Sửa"><i class="fas fa-edit"></i></button>
-                        <button class="action-btn delete" onclick="deleteItem('${item.maNS}')" title="Xóa"><i class="fas fa-trash"></i></button>
+                        <button class="action-btn edit" onclick="editItem('${item.maNS}')"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete" onclick="deleteItem('${item.maNS}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
         }
 
-        // 3. ĐIỀU KHIỂN MODAL
         function openModal(edit = false) {
             isEditMode = edit;
             document.getElementById('modalTitle').innerText = edit ? "Cập Nhật Thông Tin" : "Thêm Nông Sản Mới";
-            document.getElementById('maNS').disabled = edit; // Không cho sửa Mã khi đang Edit
-            document.getElementById('crudModal').style.display = "flex"; // Dùng flex để căn giữa
+            document.getElementById('maNS').disabled = edit;
+            document.getElementById('crudModal').style.display = "flex";
             if (!edit) clearForm();
         }
 
-        function closeModal() {
-            document.getElementById('crudModal').style.display = "none";
-        }
+        function closeModal() { document.getElementById('crudModal').style.display = "none"; }
+        function clearForm() { ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(id => document.getElementById(id).value = ""); }
 
-        function clearForm() {
-            ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(id => document.getElementById(id).value = "");
-        }
-
-        // 4. LƯU DỮ LIỆU (ADD & UPDATE)
+        // 4. LƯU DỮ LIỆU (ADD & UPDATE) - ĐÃ FIX CHẶN TRÙNG
         async function saveData() {
             const payload = {
                 maNS: document.getElementById('maNS').value,
@@ -182,13 +177,8 @@
                 xuatXu: document.getElementById('xuatXu').value
             };
 
-            if (!payload.maNS || !payload.tenNS) {
-                alert("Vui lòng nhập Mã và Tên nông sản!");
-                return;
-            }
-
-            const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
             const method = isEditMode ? "PUT" : "POST";
+            const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
 
             try {
                 const response = await fetch(url, {
@@ -201,32 +191,35 @@
                     alert("Thao tác thành công!");
                     closeModal();
                     loadData();
+                } else if (response.status === 400 || response.status === 409) {
+                    alert("❌ LỖI: Mã nông sản này đã tồn tại! Vui lòng dùng mã khác hoặc xóa mã cũ.");
                 } else {
-                    alert("Lỗi server: Kiểm tra xem mã đã tồn tại chưa!");
+                    alert("Có lỗi xảy ra từ phía server.");
                 }
             } catch (error) {
                 alert("Lỗi kết nối API!");
             }
         }
 
-        // 5. XÓA NÔNG SẢN (FIXED)
+        // 5. XÓA NÔNG SẢN (XỬ LÝ LỖI KHÓA NGOẠI)
         async function deleteItem(id) {
             if (confirm(`Bro có chắc muốn xóa mã ${id} không?`)) {
                 try {
                     const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
                     if (response.ok) {
-                        alert("Đã xóa!");
+                        alert("Đã xóa hoàn toàn!");
                         loadData();
+                    } else if (response.status === 409) {
+                        alert("❌ KHÔNG THỂ XÓA: Nông sản này đang có dữ liệu liên quan ở bảng Kiểm định hoặc Cung cấp. Hãy cấu hình Cascade Delete trong SQL!");
                     } else {
-                        alert("Xóa thất bại! Mã không tồn tại hoặc có lỗi liên kết dữ liệu.");
+                        alert("Xóa thất bại!");
                     }
                 } catch (error) {
-                    alert("Lỗi kết nối khi xóa!");
+                    alert("Lỗi kết nối!");
                 }
             }
         }
 
-        // 6. CHUẨN BỊ SỬA
         function editItem(id) {
             const item = allData.find(i => i.maNS === id);
             if (item) {
@@ -240,32 +233,36 @@
             }
         }
 
-        // 7. LỌC & SẮP XẾP
-        function filterData() {
-            const nameSearch = document.getElementById('searchInput').value.toLowerCase();
-            const loaiFilter = document.getElementById('filterLoai').value;
-            const filtered = allData.filter(item => {
-                const matchesName = item.tenNS.toLowerCase().includes(nameSearch);
-                const matchesLoai = loaiFilter === "" || item.loai === loaiFilter;
-                return matchesName && matchesLoai;
-            });
-            renderTable(filtered);
+        // 7. CÁC HÀM SẮP XẾP
+        function toggleSortID() {
+            isIDAscending = !isIDAscending;
+            allData.sort((a, b) => isIDAscending ? a.maNS.localeCompare(b.maNS) : b.maNS.localeCompare(a.maNS));
+            document.getElementById('sortIDBtn').innerHTML = isIDAscending ? '<i class="fas fa-sort-alpha-up"></i> Mã' : '<i class="fas fa-sort-alpha-down"></i> Mã';
+            renderTable(allData);
         }
 
         function toggleSortPrice() {
             isAscending = !isAscending;
             allData.sort((a, b) => isAscending ? (a.gia - b.gia) : (b.gia - a.gia));
-            document.getElementById('sortBtn').innerHTML = isAscending ? '<i class="fas fa-sort-amount-up"></i> Giá Thấp-Cao' : '<i class="fas fa-sort-amount-down"></i> Giá Cao-Thấp';
-            filterData();
+            document.getElementById('sortBtn').innerHTML = isAscending ? '<i class="fas fa-sort-numeric-up"></i> Giá' : '<i class="fas fa-sort-numeric-down"></i> Giá';
+            renderTable(allData);
+        }
+
+        function filterData() {
+            const nameSearch = document.getElementById('searchInput').value.toLowerCase();
+            const loaiFilter = document.getElementById('filterLoai').value;
+            const filtered = allData.filter(item => {
+                return item.tenNS.toLowerCase().includes(nameSearch) && (loaiFilter === "" || item.loai === loaiFilter);
+            });
+            renderTable(filtered);
         }
 
         function clearFilters() {
             document.getElementById('searchInput').value = "";
             document.getElementById('filterLoai').value = "";
-            renderTable(allData);
+            loadData();
         }
 
-        // Tải dữ liệu ngay khi mở web
         window.onload = loadData;
     </script>
 </body>
