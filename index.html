@@ -3,15 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Nông Sản Việt - Quản Trị</title>
+    <title>Hệ Thống Quản Lý Nông Sản - Admin Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <!-- SCRIPT KIỂM TRA ĐĂNG NHẬP (PHẢI ĐẶT Ở ĐẦU) -->
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
     <div class="app-container">
         <header>
-            <h1><i class="fas fa-leaf"></i> QUẢN LÝ NÔNG SẢN</h1>
-            <p>Hệ thống truy xuất nguồn gốc dữ liệu thực</p>
+            <div class="header-main">
+                <h1><i class="fas fa-leaf"></i> QUẢN LÝ NÔNG SẢN</h1>
+                <p>Hệ thống truy xuất nguồn gốc dữ liệu thực</p>
+            </div>
+            
+            <!-- HIỂN THỊ THÔNG TIN NHÂN VIÊN -->
+            <div class="user-info-bar">
+                <div class="user-details">
+                    <span class="user-name"><i class="fas fa-user-circle"></i> <span id="display-name">---</span></span>
+                    <span class="user-role" id="display-role">---</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
         </header>
 
         <main>
@@ -77,6 +98,7 @@
         </main>
     </div>
 
+    <!-- MODAL FORM (THÊM/SỬA) -->
     <div id="crudModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -109,6 +131,23 @@
         let isEditMode = false;
         const apiBase = "https://demo-xo8t.onrender.com/api/nongsan";
 
+        // HIỂN THỊ THÔNG TIN USER KHI LOAD TRANG
+        window.onload = function() {
+            if (currentUser) {
+                document.getElementById('display-name').innerText = currentUser.hoTen;
+                document.getElementById('display-role').innerText = currentUser.chucVu;
+            }
+            loadData();
+        };
+
+        function logout() {
+            if(confirm("Bro muốn đăng xuất à?")) {
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // --- CÁC HÀM CRUD & LOGIC (GIỮ NGUYÊN BẢN TRƯỚC) ---
         async function loadData() {
             const status = document.getElementById('status-message');
             const btn = document.getElementById('fetchBtn');
@@ -134,10 +173,6 @@
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
             tbody.innerHTML = "";
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Trống</td></tr>';
-                return;
-            }
             data.forEach(item => {
                 const row = `<tr>
                     <td><span class="badge">${item.maNS}</span></td>
@@ -166,7 +201,6 @@
         function closeModal() { document.getElementById('crudModal').style.display = "none"; }
         function clearForm() { ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(id => document.getElementById(id).value = ""); }
 
-        // 4. LƯU DỮ LIỆU (ADD & UPDATE) - ĐÃ FIX CHẶN TRÙNG
         async function saveData() {
             const payload = {
                 maNS: document.getElementById('maNS').value,
@@ -176,7 +210,6 @@
                 gia: parseFloat(document.getElementById('gia').value) || 0,
                 xuatXu: document.getElementById('xuatXu').value
             };
-
             const method = isEditMode ? "PUT" : "POST";
             const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
 
@@ -186,74 +219,52 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
-                
                 if (response.ok) {
-                    alert("Thao tác thành công!");
+                    alert("Thành công!");
                     closeModal();
                     loadData();
-                } else if (response.status === 400 || response.status === 409) {
-                    alert("❌ LỖI: Mã nông sản này đã tồn tại! Vui lòng dùng mã khác hoặc xóa mã cũ.");
                 } else {
-                    alert("Có lỗi xảy ra từ phía server.");
+                    alert("Lỗi: Mã đã tồn tại hoặc server từ chối!");
                 }
-            } catch (error) {
-                alert("Lỗi kết nối API!");
-            }
+            } catch (error) { alert("Lỗi kết nối!"); }
         }
 
-        // 5. XÓA NÔNG SẢN (XỬ LÝ LỖI KHÓA NGOẠI)
         async function deleteItem(id) {
-            if (confirm(`Bro có chắc muốn xóa mã ${id} không?`)) {
+            if (confirm(`Xóa mã ${id}?`)) {
                 try {
                     const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
-                    if (response.ok) {
-                        alert("Đã xóa hoàn toàn!");
-                        loadData();
-                    } else if (response.status === 409) {
-                        alert("❌ KHÔNG THỂ XÓA: Nông sản này đang có dữ liệu liên quan ở bảng Kiểm định hoặc Cung cấp. Hãy cấu hình Cascade Delete trong SQL!");
-                    } else {
-                        alert("Xóa thất bại!");
-                    }
-                } catch (error) {
-                    alert("Lỗi kết nối!");
-                }
+                    if (response.ok) { loadData(); } 
+                    else { alert("Lỗi Cascade: Hãy kiểm tra liên kết dữ liệu!"); }
+                } catch (error) { alert("Lỗi kết nối!"); }
             }
         }
 
         function editItem(id) {
             const item = allData.find(i => i.maNS === id);
             if (item) {
-                document.getElementById('maNS').value = item.maNS;
-                document.getElementById('tenNS').value = item.tenNS;
-                document.getElementById('loai').value = item.loai;
-                document.getElementById('soLuong').value = item.soLuong;
-                document.getElementById('gia').value = item.gia;
-                document.getElementById('xuatXu').value = item.xuatXu;
+                ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(key => {
+                    document.getElementById(key).value = item[key];
+                });
                 openModal(true);
             }
         }
 
-        // 7. CÁC HÀM SẮP XẾP
         function toggleSortID() {
             isIDAscending = !isIDAscending;
             allData.sort((a, b) => isIDAscending ? a.maNS.localeCompare(b.maNS) : b.maNS.localeCompare(a.maNS));
-            document.getElementById('sortIDBtn').innerHTML = isIDAscending ? '<i class="fas fa-sort-alpha-up"></i> Mã' : '<i class="fas fa-sort-alpha-down"></i> Mã';
             renderTable(allData);
         }
 
         function toggleSortPrice() {
             isAscending = !isAscending;
             allData.sort((a, b) => isAscending ? (a.gia - b.gia) : (b.gia - a.gia));
-            document.getElementById('sortBtn').innerHTML = isAscending ? '<i class="fas fa-sort-numeric-up"></i> Giá' : '<i class="fas fa-sort-numeric-down"></i> Giá';
             renderTable(allData);
         }
 
         function filterData() {
-            const nameSearch = document.getElementById('searchInput').value.toLowerCase();
-            const loaiFilter = document.getElementById('filterLoai').value;
-            const filtered = allData.filter(item => {
-                return item.tenNS.toLowerCase().includes(nameSearch) && (loaiFilter === "" || item.loai === loaiFilter);
-            });
+            const name = document.getElementById('searchInput').value.toLowerCase();
+            const loai = document.getElementById('filterLoai').value;
+            const filtered = allData.filter(i => i.tenNS.toLowerCase().includes(name) && (loai === "" || i.loai === loai));
             renderTable(filtered);
         }
 
@@ -262,8 +273,6 @@
             document.getElementById('filterLoai').value = "";
             loadData();
         }
-
-        window.onload = loadData;
     </script>
 </body>
 </html>

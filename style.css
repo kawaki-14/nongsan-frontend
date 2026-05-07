@@ -353,3 +353,52 @@ tbody tr {
         opacity: 1;
     }
 }
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.user-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #1e293b;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid #334155;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.user-name {
+    font-weight: bold;
+    color: #10b981;
+}
+
+.user-role {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.btn-logout {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+    .btn-logout:hover {
+        background: #b91c1c;
+    }
