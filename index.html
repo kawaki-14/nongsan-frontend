@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Nông Sản Việt - Admin</title>
+    <title>Hệ Thống Nông Sản Việt - Quản Trị</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -65,9 +65,11 @@
                             <th>Số lượng</th>
                             <th>Giá (VNĐ)</th>
                             <th>Xuất Xứ</th>
-                            <th>Thao tác</th> </tr>
+                            <th>Thao tác</th>
+                        </tr>
                     </thead>
-                    <tbody id="data-content"></tbody>
+                    <tbody id="data-content">
+                        </tbody>
                 </table>
             </div>
         </main>
@@ -78,16 +80,22 @@
             <span class="close-btn" onclick="closeModal()">&times;</span>
             <h2 id="modalTitle">Thêm Nông Sản</h2>
             <div class="form-group">
-                <input type="text" id="maNS" placeholder="Mã Nông Sản (VD: NS01)">
-                <input type="text" id="tenNS" placeholder="Tên Nông Sản">
-                <input type="text" id="loai" placeholder="Loại (VD: Trái cây)">
-                <input type="number" id="soLuong" placeholder="Số lượng">
-                <input type="number" id="gia" placeholder="Giá tiền">
-                <input type="text" id="xuatXu" placeholder="Xuất xứ">
+                <label>Mã Nông Sản:</label>
+                <input type="text" id="maNS" placeholder="Ví dụ: NS01">
+                <label>Tên Nông Sản:</label>
+                <input type="text" id="tenNS" placeholder="Tên sản phẩm">
+                <label>Loại:</label>
+                <input type="text" id="loai" placeholder="Ví dụ: Trái cây">
+                <label>Số lượng:</label>
+                <input type="number" id="soLuong" placeholder="0">
+                <label>Giá tiền:</label>
+                <input type="number" id="gia" placeholder="0">
+                <label>Xuất xứ:</label>
+                <input type="text" id="xuatXu" placeholder="Tỉnh thành">
             </div>
             <div class="modal-actions">
-                <button onclick="saveData()" class="btn-save">Lưu dữ liệu</button>
-                <button onclick="closeModal()" class="btn-cancel">Hủy</button>
+                <button onclick="saveData()" class="btn-save">Lưu lại</button>
+                <button onclick="closeModal()" class="btn-cancel">Hủy bỏ</button>
             </div>
         </div>
     </div>
@@ -95,33 +103,40 @@
     <script>
         let allData = [];
         let isAscending = true;
-        let isEditMode = false; // Biến đánh dấu đang Thêm hay Sửa
+        let isEditMode = false;
         const apiBase = "https://demo-xo8t.onrender.com/api/nongsan";
 
+        // 1. TẢI DỮ LIỆU
         async function loadData() {
             const status = document.getElementById('status-message');
             const btn = document.getElementById('fetchBtn');
-            status.innerText = "⏳ Đang kết nối...";
+            status.innerText = "⏳ Đang kết nối server...";
             status.className = "status loading";
             btn.disabled = true;
 
             try {
                 const response = await fetch(`${apiBase}/all`);
+                if (!response.ok) throw new Error("Lỗi API");
                 allData = await response.json();
                 renderTable(allData);
-                status.innerText = `✅ Đã hiển thị ${allData.length} sản phẩm.`;
+                status.innerText = `✅ Đã tải ${allData.length} sản phẩm.`;
                 status.className = "status success";
             } catch (error) {
-                status.innerText = "❌ Lỗi kết nối API!";
+                status.innerText = "❌ Không thể tải dữ liệu. Server đang ngủ!";
                 status.className = "status error";
             } finally {
                 btn.disabled = false;
             }
         }
 
+        // 2. VẼ BẢNG
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
             tbody.innerHTML = "";
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Trống</td></tr>';
+                return;
+            }
             data.forEach(item => {
                 const row = `<tr>
                     <td><span class="badge">${item.maNS}</span></td>
@@ -131,21 +146,20 @@
                     <td class="text-green">${item.gia ? item.gia.toLocaleString() : 0} đ</td>
                     <td>${item.xuatXu}</td>
                     <td>
-                        <button class="action-btn edit" onclick="editItem('${item.maNS}')"><i class="fas fa-edit"></i></button>
-                        <button class="action-btn delete" onclick="deleteItem('${item.maNS}')"><i class="fas fa-trash"></i></button>
+                        <button class="action-btn edit" onclick="editItem('${item.maNS}')" title="Sửa"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete" onclick="deleteItem('${item.maNS}')" title="Xóa"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
         }
 
-        // --- HÀM XỬ LÝ CRUD ---
-
+        // 3. ĐIỀU KHIỂN MODAL
         function openModal(edit = false) {
             isEditMode = edit;
-            document.getElementById('modalTitle').innerText = edit ? "Chỉnh sửa Nông Sản" : "Thêm Nông Sản Mới";
-            document.getElementById('maNS').disabled = edit; // Không cho sửa Mã khi đang ở chế độ Edit
-            document.getElementById('crudModal').style.display = "block";
+            document.getElementById('modalTitle').innerText = edit ? "Cập Nhật Thông Tin" : "Thêm Nông Sản Mới";
+            document.getElementById('maNS').disabled = edit; // Không cho sửa Mã khi đang Edit
+            document.getElementById('crudModal').style.display = "flex"; // Dùng flex để căn giữa
             if (!edit) clearForm();
         }
 
@@ -157,15 +171,21 @@
             ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(id => document.getElementById(id).value = "");
         }
 
+        // 4. LƯU DỮ LIỆU (ADD & UPDATE)
         async function saveData() {
             const payload = {
                 maNS: document.getElementById('maNS').value,
                 tenNS: document.getElementById('tenNS').value,
                 loai: document.getElementById('loai').value,
-                soLuong: document.getElementById('soLuong').value,
-                gia: document.getElementById('gia').value,
+                soLuong: parseInt(document.getElementById('soLuong').value) || 0,
+                gia: parseFloat(document.getElementById('gia').value) || 0,
                 xuatXu: document.getElementById('xuatXu').value
             };
+
+            if (!payload.maNS || !payload.tenNS) {
+                alert("Vui lòng nhập Mã và Tên nông sản!");
+                return;
+            }
 
             const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
             const method = isEditMode ? "PUT" : "POST";
@@ -176,29 +196,37 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
+                
                 if (response.ok) {
-                    alert(isEditMode ? "Cập nhật thành công!" : "Thêm mới thành công!");
+                    alert("Thao tác thành công!");
                     closeModal();
                     loadData();
+                } else {
+                    alert("Lỗi server: Kiểm tra xem mã đã tồn tại chưa!");
                 }
             } catch (error) {
-                alert("Lỗi khi lưu dữ liệu!");
+                alert("Lỗi kết nối API!");
             }
         }
 
+        // 5. XÓA NÔNG SẢN (FIXED)
         async function deleteItem(id) {
             if (confirm(`Bro có chắc muốn xóa mã ${id} không?`)) {
                 try {
                     const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
                     if (response.ok) {
+                        alert("Đã xóa!");
                         loadData();
+                    } else {
+                        alert("Xóa thất bại! Mã không tồn tại hoặc có lỗi liên kết dữ liệu.");
                     }
                 } catch (error) {
-                    alert("Không thể xóa!");
+                    alert("Lỗi kết nối khi xóa!");
                 }
             }
         }
 
+        // 6. CHUẨN BỊ SỬA
         function editItem(id) {
             const item = allData.find(i => i.maNS === id);
             if (item) {
@@ -212,7 +240,7 @@
             }
         }
 
-        // --- CÁC HÀM FILTER/SORT CŨ ---
+        // 7. LỌC & SẮP XẾP
         function filterData() {
             const nameSearch = document.getElementById('searchInput').value.toLowerCase();
             const loaiFilter = document.getElementById('filterLoai').value;
@@ -236,6 +264,9 @@
             document.getElementById('filterLoai').value = "";
             renderTable(allData);
         }
+
+        // Tải dữ liệu ngay khi mở web
+        window.onload = loadData;
     </script>
 </body>
 </html>
