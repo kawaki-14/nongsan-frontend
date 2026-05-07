@@ -118,3 +118,20 @@ tr:hover {
     background: #450a0a;
     color: #f87171;
 }
+
+.font-bold {
+    font-weight: 600;
+    color: #fff;
+}
+
+.text-green {
+    color: #10b981
+    font-weight: bold;
+}
+
+.badge {
+    background: #334155;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+}

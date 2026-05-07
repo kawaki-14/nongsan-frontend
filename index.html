@@ -28,7 +28,11 @@
                     <thead>
                         <tr>
                             <th>Mã Nông Sản</th>
-                            <th>Tên Sản Phẩm</th>
+                            <th>Tên Nông Sản</th>
+			    <th>Loại</th>
+         		    <th>Số lượng</th>
+      		            <th>Giá (VNĐ)</th>
+       		            <th>Xuất Xứ</th>
                             <th>Xuất Xứ</th>
                         </tr>
                     </thead>
@@ -41,47 +45,33 @@
 
     <script>
         async function loadData() {
-            const tbody = document.getElementById('data-content');
-            const status = document.getElementById('status-message');
-            const btn = document.getElementById('fetchBtn');
+    const tbody = document.getElementById('data-content');
+    const status = document.getElementById('status-message');
+    
+    status.innerText = "⏳ Đang tải dữ liệu...";
+    tbody.innerHTML = "";
 
-            // 1. Hiệu ứng khi đang tải
-            status.innerText = "Đang kết nối server ...";
-            status.className = "status loading";
-            btn.disabled = true;
-            tbody.innerHTML = "";
+    try {
+        const response = await fetch('https://demo-xo8t.onrender.com/api/nongsan/all');
+        const data = await response.json();
 
-            try {
-                // 2. Gọi API đến Render (Link)
-                const response = await fetch('https://demo-xo8t.onrender.com/api/nongsan/all');
-                
-                if (!response.ok) throw new Error("Server trả về lỗi!");
+        data.forEach(item => {
+            const row = `<tr>
+                <td><span class="badge">${item.maNS}</span></td>
+                <td class="font-bold">${item.tenNS}</td>
+                <td>${item.loai || 'Chưa phân loại'}</td>
+                <td>${item.soLuong}</td>
+                <td class="text-green">${item.gia.toLocaleString()} đ</td>
+                <td><i class="fas fa-map-marker-alt"></i> ${item.xuatXu}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
 
-                const data = await response.json();
-
-                // 3. Hiển thị dữ liệu
-                if (data.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='3'>Không có dữ liệu trong DB</td></tr>";
-                } else {
-                    data.forEach(item => {
-                        const row = `<tr>
-                            <td><span class="badge">${item.maNS}</span></td>
-                            <td class="font-bold">${item.tenNS}</td>
-                            <td><i class="fas fa-map-marker-alt"></i> ${item.xuatXu}</td>
-                        </tr>`;
-                        tbody.innerHTML += row;
-                    });
-                    status.innerText = `Đã tải ${data.length} sản phẩm thành công!`;
-                    status.className = "status success";
-                }
-            } catch (error) {
-                console.error(error);
-                status.innerText = "Lỗi!";
-                status.className = "status error";
-            } finally {
-                btn.disabled = false;
-            }
-        }
+        status.innerText = `✅ Đã hiển thị ${data.length} sản phẩm.`;
+    } catch (error) {
+        status.innerText = "❌ Lỗi kết nối API!";
+    }
+}
     </script>
 </body>
 </html>
