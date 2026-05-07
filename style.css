@@ -135,3 +135,46 @@ tr:hover {
     border-radius: 4px;
     font-family: 'Courier New', Courier, monospace;
 }
+
+.search-box {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+}
+
+.input-group {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+    .input-group i {
+        position: absolute;
+        left: 12px;
+        color: #10b981;
+    }
+
+input, select {
+    width: 100%;
+    padding: 10px 10px 10px 35px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: white;
+    outline: none;
+    transition: 0.3s;
+}
+
+    input:focus, select:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+    }
+
+select {
+    cursor: pointer;
+}
