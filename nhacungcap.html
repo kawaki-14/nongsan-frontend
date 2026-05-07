@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- KIỂM TRA ĐĂNG NHẬP -->
     <script>
         const currentUser = JSON.parse(localStorage.getItem('user'));
         if (!currentUser) {
@@ -17,7 +16,6 @@
     </script>
 
     <div class="app-container">
-        <!-- THANH ĐIỀU HƯỚNG BÊN CẠNH (SIDEBAR) -->
         <nav class="side-nav">
             <div class="nav-logo">
                 <i class="fas fa-seedling"></i>
@@ -27,10 +25,6 @@
             <a href="nhacungcap.html" class="active"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
             <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
             <a href="#"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
-            <hr>
-            <button class="btn-logout-sidebar" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> Thoát
-            </button>
         </nav>
 
         <main>
@@ -45,6 +39,9 @@
                         <span class="user-name" id="display-name">---</span>
                         <span class="user-role" id="display-role">---</span>
                     </div>
+                    <button class="btn-logout" onclick="logout()" title="Đăng xuất hệ thống">
+                        <i class="fas fa-power-off"></i>
+                    </button>
                 </div>
             </header>
 
@@ -92,7 +89,6 @@
         </main>
     </div>
 
-    <!-- MODAL FORM (THÊM/SỬA) -->
     <div id="crudModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -132,8 +128,10 @@
         };
 
         function logout() {
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            if(confirm("Bro chắc chắn muốn đăng xuất?")) {
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
         }
 
         async function loadData() {
@@ -201,17 +199,17 @@
                     closeModal();
                     loadData();
                 } else {
-                    alert("Lỗi: Mã NCC đã tồn tại hoặc dữ liệu không hợp lệ!");
+                    alert("Lỗi: Mã NCC đã tồn tại!");
                 }
             } catch (error) { alert("Lỗi kết nối!"); }
         }
 
         async function deleteItem(id) {
-            if (confirm(`Bro chắc chắn muốn xóa đối tác ${id} không?`)) {
+            if (confirm(`Xóa đối tác ${id}?`)) {
                 try {
                     const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
                     if (response.ok) loadData();
-                    else alert("Không thể xóa nhà cung cấp đang có hàng trong kho!");
+                    else alert("Không thể xóa: NCC đang có hàng liên kết!");
                 } catch (error) { alert("Lỗi kết nối!"); }
             }
         }

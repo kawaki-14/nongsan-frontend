@@ -25,10 +25,6 @@
             <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
             <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
             <a href="#"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
-            <hr style="border: 0; border-top: 1px solid #1e293b; margin: 20px 0;">
-            <button class="btn-logout-sidebar" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> Đăng xuất
-            </button>
         </nav>
 
         <main>
@@ -43,6 +39,9 @@
                         <span class="user-name" id="display-name">---</span>
                         <span class="user-role" id="display-role">---</span>
                     </div>
+                    <button class="btn-logout" onclick="logout()" title="Đăng xuất hệ thống">
+                        <i class="fas fa-power-off"></i>
+                    </button>
                 </div>
             </header>
 
@@ -150,7 +149,7 @@
         };
 
         function logout() {
-            if(confirm("Bro chắc chắn muốn thoát hệ thống?")) {
+            if(confirm("Bro chắc chắn muốn đăng xuất?")) {
                 localStorage.removeItem('user');
                 window.location.href = 'login.html';
             }
@@ -159,19 +158,18 @@
         async function loadData() {
             const status = document.getElementById('status-message');
             const btn = document.getElementById('fetchBtn');
-            status.innerText = "⏳ Đang kết nối server...";
+            status.innerText = "⏳ Đang tải dữ liệu...";
             status.className = "status loading";
             btn.disabled = true;
 
             try {
                 const response = await fetch(`${apiBase}/all`);
-                if (!response.ok) throw new Error("Lỗi API");
                 allData = await response.json();
                 renderTable(allData);
                 status.innerText = `✅ Đã tải ${allData.length} sản phẩm.`;
                 status.className = "status success";
             } catch (error) {
-                status.innerText = "❌ Không thể tải dữ liệu!";
+                status.innerText = "❌ Lỗi kết nối!";
                 status.className = "status error";
             } finally {
                 btn.disabled = false;
@@ -181,10 +179,6 @@
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
             tbody.innerHTML = "";
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Không tìm thấy sản phẩm phù hợp</td></tr>';
-                return;
-            }
             data.forEach(item => {
                 const row = `<tr>
                     <td><span class="badge">${item.maNS}</span></td>
@@ -222,7 +216,6 @@
                 gia: parseFloat(document.getElementById('gia').value) || 0,
                 xuatXu: document.getElementById('xuatXu').value
             };
-
             const method = isEditMode ? "PUT" : "POST";
             const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
 
@@ -232,29 +225,21 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
-                
                 if (response.ok) {
-                    alert("Thành công!");
                     closeModal();
                     loadData();
-                } else if (response.status === 400 || response.status === 409) {
-                    alert("Lỗi: Mã nông sản đã tồn tại!");
                 } else {
-                    alert("Lỗi hệ thống khi lưu!");
+                    alert("Lỗi: Mã trùng hoặc server gặp sự cố!");
                 }
-            } catch (error) { alert("Lỗi kết nối API!"); }
+            } catch (error) { alert("Lỗi kết nối!"); }
         }
 
         async function deleteItem(id) {
             if (confirm(`Xóa mã ${id}?`)) {
                 try {
                     const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
-                    if (response.ok) {
-                        alert("Đã xóa thành công!");
-                        loadData();
-                    } else if (response.status === 409) {
-                        alert("Không thể xóa: Có dữ liệu liên quan ở bảng khác!");
-                    }
+                    if (response.ok) loadData();
+                    else alert("Không thể xóa sản phẩm đang có liên kết!");
                 } catch (error) { alert("Lỗi kết nối!"); }
             }
         }
