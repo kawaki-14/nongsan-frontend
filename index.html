@@ -3,55 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Nông Sản - Admin Dashboard</title>
+    <title>AGRI-ADMIN - Nông Sản</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <script>
         const currentUser = JSON.parse(localStorage.getItem('user'));
-        if (!currentUser) {
-            window.location.href = 'login.html';
-        }
+        if (!currentUser) window.location.href = 'login.html';
     </script>
 
     <div class="app-container">
         <nav class="side-nav">
-            <div class="nav-logo">
-                <i class="fas fa-seedling"></i>
-                <span>AGRI-ADMIN</span>
-            </div>
+            <div class="nav-logo"><i class="fas fa-seedling"></i><span>AGRI-ADMIN</span></div>
             <a href="index.html" class="active"><i class="fas fa-leaf"></i> Nông Sản</a>
             <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="cungcap.html"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
             <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
-            <a href="#"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
         </nav>
 
         <main>
             <header>
                 <div class="header-main">
                     <h1>QUẢN LÝ NÔNG SẢN</h1>
-                    <p>Hệ thống truy xuất nguồn gốc dữ liệu thực</p>
+                    <p>Hệ thống kho bãi và truy xuất nguồn gốc</p>
                 </div>
-                
                 <div class="user-info-bar">
                     <div class="user-details">
                         <span class="user-name" id="display-name">---</span>
                         <span class="user-role" id="display-role">---</span>
                     </div>
-                    <button class="btn-logout" onclick="logout()" title="Đăng xuất hệ thống">
-                        <i class="fas fa-power-off"></i>
-                    </button>
+                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
                 </div>
             </header>
 
             <div class="control-panel">
-                <button id="fetchBtn" onclick="loadData()">
-                    <i class="fas fa-sync-alt"></i> Tải dữ liệu
-                </button>
-                <button class="btn-tool btn-add" onclick="openModal()">
-                    <i class="fas fa-plus-circle"></i> Thêm Nông Sản Mới
-                </button>
+                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải lại</button>
+                <button onclick="openModal()"><i class="fas fa-plus-circle"></i> Thêm Nông Sản</button>
             </div>
 
             <div class="search-box">
@@ -59,46 +47,22 @@
                     <i class="fas fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Tìm tên nông sản..." onkeyup="filterData()">
                 </div>
-
                 <div class="input-group">
                     <i class="fas fa-filter"></i>
                     <select id="filterLoai" onchange="filterData()">
                         <option value="">Tất cả loại</option>
                         <option value="Trái cây">Trái cây</option>
                         <option value="Rau củ">Rau củ</option>
-                        <option value="Gia vị">Gia vị</option>
-                        <option value="Thực phẩm tươi sống">Thực phẩm tươi sống</option>
                         <option value="Lương thực">Lương thực</option>
-                        <option value="Đồ uống">Đồ uống</option>
                     </select>
                 </div>
-
-                <div class="button-group">
-                    <button id="sortIDBtn" onclick="toggleSortID()" class="btn-tool">
-                        <i class="fas fa-sort-alpha-down"></i> Mã
-                    </button>
-                    <button id="sortBtn" onclick="toggleSortPrice()" class="btn-tool">
-                        <i class="fas fa-sort-numeric-down"></i> Giá
-                    </button>
-                    <button onclick="clearFilters()" class="btn-tool btn-clear" title="Xóa bộ lọc">
-                        <i class="fas fa-eraser"></i>
-                    </button>
-                </div>
             </div>
-
-            <div id="status-message" class="status">Sẵn sàng kết nối...</div>
 
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
-                            <th>Mã NS</th>
-                            <th>Tên Nông Sản</th>
-                            <th>Loại</th>
-                            <th>Số lượng</th>
-                            <th>Giá (VNĐ)</th>
-                            <th>Xuất Xứ</th>
-                            <th style="width: 120px;">Thao tác</th>
+                            <th>Mã NS</th><th>Tên Nông Sản</th><th>Loại</th><th>Số lượng</th><th>Giá (VNĐ)</th><th>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="data-content"></tbody>
@@ -107,183 +71,65 @@
         </main>
     </div>
 
+    <!-- MODAL -->
     <div id="crudModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeModal()">&times;</span>
             <h2 id="modalTitle">Thêm Nông Sản</h2>
-            <div class="form-group">
-                <label>Mã Nông Sản:</label>
-                <input type="text" id="maNS" placeholder="Ví dụ: NS01">
-                <label>Tên Nông Sản:</label>
-                <input type="text" id="tenNS" placeholder="Tên sản phẩm">
-                <label>Loại:</label>
-                <input type="text" id="loai" placeholder="Ví dụ: Trái cây">
-                <label>Số lượng:</label>
-                <input type="number" id="soLuong" placeholder="0">
-                <label>Giá tiền:</label>
-                <input type="number" id="gia" placeholder="0">
-                <label>Xuất xứ:</label>
-                <input type="text" id="xuatXu" placeholder="Tỉnh thành">
-            </div>
-            <div class="modal-actions">
-                <button onclick="saveData()" class="btn-save">Lưu lại</button>
-                <button onclick="closeModal()" class="btn-cancel">Hủy bỏ</button>
+            <input type="text" id="maNS" placeholder="Mã NS">
+            <input type="text" id="tenNS" placeholder="Tên sản phẩm">
+            <input type="text" id="loai" placeholder="Loại">
+            <input type="number" id="soLuong" placeholder="Số lượng">
+            <input type="number" id="gia" placeholder="Giá">
+            <input type="text" id="xuatXu" placeholder="Xuất xứ">
+            <div style="margin-top:20px">
+                <button onclick="saveData()">Lưu</button>
+                <button onclick="closeModal()" style="background:#475569">Hủy</button>
             </div>
         </div>
     </div>
 
     <script>
-        let allData = [];
-        let isAscending = true;
-        let isIDAscending = true;
-        let isEditMode = false;
         const apiBase = "https://demo-xo8t.onrender.com/api/nongsan";
+        let allData = [];
 
-        // Khởi tạo trang
-        window.onload = function() {
-            if (currentUser) {
-                document.getElementById('display-name').innerText = currentUser.hoTen;
-                document.getElementById('display-role').innerText = currentUser.chucVu;
-            }
+        window.onload = () => {
+            document.getElementById('display-name').innerText = currentUser.hoTen;
+            document.getElementById('display-role').innerText = currentUser.chucVu;
             loadData();
         };
 
-        function logout() {
-            if(confirm("Bro chắc chắn muốn đăng xuất?")) {
-                localStorage.removeItem('user');
-                window.location.href = 'login.html';
-            }
-        }
+        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
 
         async function loadData() {
-            const status = document.getElementById('status-message');
-            const btn = document.getElementById('fetchBtn');
-            status.innerText = "⏳ Đang tải dữ liệu...";
-            status.className = "status loading";
-            btn.disabled = true;
-
-            try {
-                const response = await fetch(`${apiBase}/all`);
-                allData = await response.json();
-                renderTable(allData);
-                status.innerText = `✅ Đã tải ${allData.length} sản phẩm.`;
-                status.className = "status success";
-            } catch (error) {
-                status.innerText = "❌ Lỗi kết nối!";
-                status.className = "status error";
-            } finally {
-                btn.disabled = false;
-            }
+            const res = await fetch(`${apiBase}/all`);
+            allData = await res.json();
+            renderTable(allData);
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
-            tbody.innerHTML = "";
-            data.forEach(item => {
-                const row = `<tr>
+            tbody.innerHTML = data.map(item => `
+                <tr>
                     <td><span class="badge">${item.maNS}</span></td>
                     <td class="font-bold">${item.tenNS}</td>
-                    <td>${item.loai || '---'}</td>
+                    <td>${item.loai}</td>
                     <td>${item.soLuong}</td>
-                    <td class="text-green">${item.gia ? item.gia.toLocaleString() : 0} đ</td>
-                    <td>${item.xuatXu}</td>
+                    <td class="text-green">${item.gia.toLocaleString()} đ</td>
                     <td>
                         <button class="action-btn edit" onclick="editItem('${item.maNS}')"><i class="fas fa-edit"></i></button>
                         <button class="action-btn delete" onclick="deleteItem('${item.maNS}')"><i class="fas fa-trash"></i></button>
                     </td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
+                </tr>`).join('');
         }
 
-        function openModal(edit = false) {
-            isEditMode = edit;
-            document.getElementById('modalTitle').innerText = edit ? "Cập Nhật Nông Sản" : "Thêm Nông Sản Mới";
-            document.getElementById('maNS').disabled = edit;
-            document.getElementById('crudModal').style.display = "flex";
-            if (!edit) clearForm();
-        }
-
+        function openModal() { document.getElementById('crudModal').style.display = "flex"; }
         function closeModal() { document.getElementById('crudModal').style.display = "none"; }
-        function clearForm() { ['maNS', 'tenNS', 'loai', 'soLuong', 'gia', 'xuatXu'].forEach(id => document.getElementById(id).value = ""); }
-
-        async function saveData() {
-            const payload = {
-                maNS: document.getElementById('maNS').value,
-                tenNS: document.getElementById('tenNS').value,
-                loai: document.getElementById('loai').value,
-                soLuong: parseInt(document.getElementById('soLuong').value) || 0,
-                gia: parseFloat(document.getElementById('gia').value) || 0,
-                xuatXu: document.getElementById('xuatXu').value
-            };
-            const method = isEditMode ? "PUT" : "POST";
-            const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
-
-            try {
-                const response = await fetch(url, {
-                    method: method,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-                if (response.ok) {
-                    closeModal();
-                    loadData();
-                } else {
-                    alert("Lỗi: Mã trùng hoặc server gặp sự cố!");
-                }
-            } catch (error) { alert("Lỗi kết nối!"); }
-        }
-
-        async function deleteItem(id) {
-            if (confirm(`Xóa mã ${id}?`)) {
-                try {
-                    const response = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
-                    if (response.ok) loadData();
-                    else alert("Không thể xóa sản phẩm đang có liên kết!");
-                } catch (error) { alert("Lỗi kết nối!"); }
-            }
-        }
-
-        function editItem(id) {
-            const item = allData.find(i => i.maNS === id);
-            if (item) {
-                document.getElementById('maNS').value = item.maNS;
-                document.getElementById('tenNS').value = item.tenNS;
-                document.getElementById('loai').value = item.loai;
-                document.getElementById('soLuong').value = item.soLuong;
-                document.getElementById('gia').value = item.gia;
-                document.getElementById('xuatXu').value = item.xuatXu;
-                openModal(true);
-            }
-        }
-
-        function toggleSortID() {
-            isIDAscending = !isIDAscending;
-            allData.sort((a, b) => isIDAscending ? a.maNS.localeCompare(b.maNS) : b.maNS.localeCompare(a.maNS));
-            document.getElementById('sortIDBtn').innerHTML = isIDAscending ? '<i class="fas fa-sort-alpha-up"></i> Mã' : '<i class="fas fa-sort-alpha-down"></i> Mã';
-            renderTable(allData);
-        }
-
-        function toggleSortPrice() {
-            isAscending = !isAscending;
-            allData.sort((a, b) => isAscending ? (a.gia - b.gia) : (b.gia - a.gia));
-            document.getElementById('sortBtn').innerHTML = isAscending ? '<i class="fas fa-sort-numeric-up"></i> Giá' : '<i class="fas fa-sort-numeric-down"></i> Giá';
-            renderTable(allData);
-        }
-
+        
         function filterData() {
-            const nameSearch = document.getElementById('searchInput').value.toLowerCase();
-            const loaiFilter = document.getElementById('filterLoai').value;
-            const filtered = allData.filter(item => {
-                return item.tenNS.toLowerCase().includes(nameSearch) && (loaiFilter === "" || item.loai === loaiFilter);
-            });
+            const name = document.getElementById('searchInput').value.toLowerCase();
+            const loai = document.getElementById('filterLoai').value;
+            const filtered = allData.filter(i => i.tenNS.toLowerCase().includes(name) && (loai === "" || i.loai === loai));
             renderTable(filtered);
-        }
-
-        function clearFilters() {
-            document.getElementById('searchInput').value = "";
-            document.getElementById('filterLoai').value = "";
-            loadData();
         }
     </script>
 </body>
