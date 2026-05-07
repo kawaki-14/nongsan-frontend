@@ -178,3 +178,89 @@ input, select {
 select {
     cursor: pointer;
 }
+
+.btn-secondary {
+    background: #334155;
+    color: #10b981;
+    border: 1px solid #475569;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 500;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+    .btn-secondary:hover {
+        background: #475569;
+        color: #34d399;
+    }
+
+tbody tr {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-tool {
+    background: #334155;
+    color: #10b981;
+    border: 1px solid #475569;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+    .btn-tool:hover {
+        background: #475569;
+        border-color: #10b981;
+    }
+
+.btn-clear {
+    color: #f87171;
+}
+
+    .btn-clear:hover {
+        background: #450a0a;
+        border-color: #f87171;
+    }
+
+@media (max-width: 600px) {
+    .search-box {
+        flex-direction: column;
+    }
+
+    .button-group {
+        width: 100%;
+    }
+
+    .btn-tool {
+        flex: 1;
+        justify-content: center;
+    }
+}

@@ -39,6 +39,15 @@
                         <option value="Đồ uống">Đồ uống</option>
                     </select>
                 </div>
+
+                <div class="button-group">
+                    <button id="sortBtn" onclick="toggleSortPrice()" class="btn-tool">
+                        <i class="fas fa-sort"></i> Giá
+                    </button>
+                    <button onclick="clearFilters()" class="btn-tool btn-clear" title="Xóa bộ lọc">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                </div>
             </div>
 
             <div id="status-message" class="status">Sẵn sàng kết nối...</div>
@@ -63,7 +72,9 @@
     </div>
 
     <script>
-        let allData = [];
+        let allData = []; // Lưu trữ dữ liệu gốc
+        let isAscending = true; // Trạng thái sắp xếp giá
+
         async function loadData() {
             const status = document.getElementById('status-message');
             const btn = document.getElementById('fetchBtn');
@@ -77,7 +88,6 @@
                 if (!response.ok) throw new Error("Lỗi Server");
                 
                 allData = await response.json();
-                
                 renderTable(allData);
                 
                 status.innerText = `✅ Đã hiển thị ${allData.length} sản phẩm.`;
@@ -104,7 +114,7 @@
                 const row = `<tr>
                     <td><span class="badge">${item.maNS}</span></td>
                     <td class="font-bold">${item.tenNS}</td>
-                    <td>${item.loai || 'Chưa phân loại'}</td>
+                    <td>${item.loai || '---'}</td>
                     <td>${item.soLuong}</td>
                     <td class="text-green">${item.gia ? item.gia.toLocaleString() : 0} đ</td>
                     <td><i class="fas fa-map-marker-alt"></i> ${item.xuatXu}</td>
@@ -124,9 +134,40 @@
             });
 
             renderTable(filtered);
-
             const status = document.getElementById('status-message');
             status.innerText = `🔍 Tìm thấy ${filtered.length} kết quả phù hợp.`;
+        }
+
+        // TÍNH NĂNG SẮP XẾP GIÁ
+        function toggleSortPrice() {
+            if (allData.length === 0) return;
+            
+            isAscending = !isAscending;
+            const sortBtn = document.getElementById('sortBtn');
+
+            allData.sort((a, b) => {
+                return isAscending ? (a.gia - b.gia) : (b.gia - a.gia);
+            });
+
+            // Cập nhật giao diện nút
+            sortBtn.innerHTML = isAscending 
+                ? '<i class="fas fa-sort-amount-up"></i> Thấp - Cao' 
+                : '<i class="fas fa-sort-amount-down"></i> Cao - Thấp';
+            
+            filterData(); // Sắp xếp xong thì lọc lại theo điều kiện hiện tại
+        }
+
+        // TÍNH NĂNG XÓA BỘ LỌC
+        function clearFilters() {
+            document.getElementById('searchInput').value = "";
+            document.getElementById('filterLoai').value = "";
+            document.getElementById('sortBtn').innerHTML = '<i class="fas fa-sort"></i> Giá';
+            
+            // Tải lại bảng gốc (giữ nguyên thứ tự ban đầu nếu muốn, hoặc giữ sort hiện tại)
+            renderTable(allData);
+            
+            const status = document.getElementById('status-message');
+            status.innerText = `✅ Đã xóa bộ lọc. Hiển thị tất cả ${allData.length} sản phẩm.`;
         }
     </script>
 </body>
