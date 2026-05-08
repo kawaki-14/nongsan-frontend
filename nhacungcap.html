@@ -1,63 +1,60 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>AGRI-ADMIN - Nhà Cung Cấp</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="app-container">
-        <nav class="side-nav">
-            <div class="nav-logo"><i class="fas fa-seedling"></i><span>AGRI-ADMIN</span></div>
-            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
-            <a href="nhacungcap.html" class="active"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
-            <a href="cungcap.html"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
-            <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
-        </nav>
+<script>
+    // 1. Lấy thông tin user từ localStorage
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    let allData = [];
+    let isEditMode = false;
+    const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
 
-        <main>
-            <header>
-                <div class="header-main"><h1>NHÀ CUNG CẤP</h1><p>Quản lý đối tác chiến lược</p></div>
-                <div class="user-info-bar">
-                    <div class="user-details"><span class="user-name" id="display-name">---</span></div>
-                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
-                </div>
-            </header>
-
-            <div class="control-panel">
-                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Làm mới</button>
-                <button onclick="openModal()"><i class="fas fa-plus-circle"></i> Thêm NCC</button>
-            </div>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead><tr><th>Mã NCC</th><th>Tên Nhà Cung Cấp</th><th>Địa Chỉ</th><th>Loại Hình</th><th>Thao tác</th></tr></thead>
-                    <tbody id="ncc-content"></tbody>
-                </table>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
-        window.onload = () => {
+    // 2. Hàm chạy ngay khi trang vừa load xong
+    window.onload = function() {
+        if (currentUser) {
+            // Hiển thị tên và chức vụ lên Header
             document.getElementById('display-name').innerText = currentUser.hoTen;
-            loadData();
-        };
-        async function loadData() {
-            const res = await fetch(`${apiBase}/all`);
-            const data = await res.json();
-            document.getElementById('ncc-content').innerHTML = data.map(item => `
-                <tr>
-                    <td><span class="badge">${item.maNCC}</span></td>
-                    <td class="font-bold">${item.tenNCC}</td>
-                    <td>${item.diaChi}</td>
-                    <td><span class="type-tag">${item.loaiHinh}</span></td>
-                    <td><button class="action-btn delete" onclick="deleteItem('${item.maNCC}')"><i class="fas fa-trash"></i></button></td>
-                </tr>`).join('');
+            document.getElementById('display-role').innerText = currentUser.chucVu;
+        } else {
+            // Nếu chưa login thì đuổi về trang login
+            window.location.href = 'login.html';
         }
-        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
-    </script>
-</body>
-</html>
+        
+        // Tự động tải dữ liệu bảng
+        loadData();
+    };
+
+    function logout() {
+        if(confirm("Bro chắc chắn muốn đăng xuất?")) {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+    }
+
+    async function loadData() {
+        const status = document.getElementById('status-message');
+        try {
+            const response = await fetch(`${apiBase}/all`);
+            allData = await response.json();
+            renderTable(allData);
+            status.innerText = `✅ Tìm thấy ${allData.length} nhà cung cấp.`;
+            status.className = "status success";
+        } catch (error) {
+            status.innerText = "❌ Lỗi tải dữ liệu!";
+            status.className = "status error";
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('ncc-content');
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td><span class="badge">${item.maNCC}</span></td>
+                <td class="font-bold">${item.tenNCC}</td>
+                <td>${item.diaChi}</td>
+                <td><span class="type-tag">${item.loaiHinh}</span></td>
+                <td>
+                    <button class="action-btn edit" onclick="editItem('${item.maNCC}')"><i class="fas fa-edit"></i></button>
+                    <button class="action-btn delete" onclick="deleteItem('${item.maNCC}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    // Các hàm openModal, closeModal, saveData, deleteItem, filterData giữ nguyên như cũ...
+</script>

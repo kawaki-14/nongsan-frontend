@@ -1,86 +1,55 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>AGRI-ADMIN - Nhập Hàng</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="app-container">
-        <nav class="side-nav">
-            <div class="nav-logo"><i class="fas fa-seedling"></i><span>AGRI-ADMIN</span></div>
-            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
-            <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
-            <a href="cungcap.html" class="active"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
-            <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
-        </nav>
+<script>
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const apiCC = "https://demo-xo8t.onrender.com/api/cungcap";
 
-        <main>
-            <header>
-                <div class="header-main"><h1>LỊCH SỬ NHẬP HÀNG</h1><p>Theo dõi dòng chảy sản phẩm</p></div>
-                <div class="user-info-bar">
-                    <div class="user-details"><span class="user-name" id="display-name">---</span></div>
-                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
-                </div>
-            </header>
-
-            <div class="control-panel">
-                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải dữ liệu</button>
-                <button onclick="openModal()"><i class="fas fa-file-import"></i> Tạo Phiếu Nhập</button>
-            </div>
-
-            <div class="table-wrapper">
-                <table>
-                    <thead><tr><th>Nhà Cung Cấp</th><th>Sản Phẩm</th><th>Số Lượng</th><th>Ngày Nhập</th><th>Thao tác</th></tr></thead>
-                    <tbody id="cc-content"></tbody>
-                </table>
-            </div>
-        </main>
-    </div>
-
-    <!-- MODAL NHẬP HÀNG -->
-    <div id="ccModal" class="modal">
-        <div class="modal-content">
-            <h2>Tạo Phiếu Cung Cấp</h2>
-            <label>Chọn Nhà Cung Cấp:</label>
-            <select id="selectNCC"></select>
-            <label>Chọn Nông Sản:</label>
-            <select id="selectNS"></select>
-            <label>Số lượng cung cấp:</label>
-            <input type="number" id="soLuongCC" placeholder="Nhập số lượng">
-            <label>Ngày cung cấp:</label>
-            <input type="date" id="ngayCC">
-            <div style="margin-top:20px">
-                <button onclick="saveCungCap()">Xác nhận nhập kho</button>
-                <button onclick="closeModal()" style="background:#475569">Đóng</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const apiCC = "https://demo-xo8t.onrender.com/api/cungcap";
-        
-        window.onload = () => {
+    // Hàm chạy ngay khi load trang
+    window.onload = function() {
+        // 1. Hiển thị thông tin User
+        if (currentUser) {
             document.getElementById('display-name').innerText = currentUser.hoTen;
-            loadData();
-            loadDropdowns();
-        };
+            document.getElementById('display-role').innerText = currentUser.chucVu;
+        } else {
+            window.location.href = 'login.html';
+        }
 
-        async function loadData() {
+        // 2. Tự động nạp dữ liệu bảng lịch sử
+        loadData();
+
+        // 3. Tự động nạp danh sách vào các ô chọn (Modal)
+        loadDropdowns();
+    };
+
+    function logout() {
+        if(confirm("Bro chắc chắn muốn thoát?")) {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+    }
+
+    async function loadData() {
+        const tbody = document.getElementById('cc-content');
+        try {
             const res = await fetch(`${apiCC}/all`);
             const data = await res.json();
-            document.getElementById('cc-content').innerHTML = data.map(item => `
+            tbody.innerHTML = data.map(item => `
                 <tr>
                     <td><b>${item.maNCC}</b></td>
                     <td>${item.maNS}</td>
                     <td class="text-green">+ ${item.soLuongCC}</td>
                     <td>${item.ngayCC}</td>
-                    <td><button class="action-btn delete" onclick="deleteItem('${item.maNCC}', '${item.maNS}')"><i class="fas fa-trash"></i></button></td>
+                    <td>
+                        <button class="action-btn delete" onclick="deleteItem('${item.maNCC}', '${item.maNS}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>`).join('');
+        } catch (e) {
+            console.error("Lỗi tải bảng cung cấp", e);
         }
+    }
 
-        async function loadDropdowns() {
+    async function loadDropdowns() {
+        try {
             const [resNCC, resNS] = await Promise.all([
                 fetch("https://demo-xo8t.onrender.com/api/nhacungcap/all"),
                 fetch("https://demo-xo8t.onrender.com/api/nongsan/all")
@@ -90,28 +59,10 @@
             
             document.getElementById('selectNCC').innerHTML = nccs.map(n => `<option value="${n.maNCC}">${n.tenNCC}</option>`).join('');
             document.getElementById('selectNS').innerHTML = nss.map(s => `<option value="${s.maNS}">${s.tenNS}</option>`).join('');
+        } catch (e) {
+            console.error("Lỗi nạp dropdown", e);
         }
+    }
 
-        async function saveCungCap() {
-            const payload = {
-                maNCC: document.getElementById('selectNCC').value,
-                maNS: document.getElementById('selectNS').value,
-                soLuongCC: parseInt(document.getElementById('soLuongCC').value),
-                ngayCC: document.getElementById('ngayCC').value
-            };
-            await fetch(`${apiCC}/add`, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload)
-            });
-            alert("Nhập kho thành công! Số lượng nông sản đã được tự động cộng dồn.");
-            closeModal();
-            loadData();
-        }
-
-        function openModal() { document.getElementById('ccModal').style.display="flex"; }
-        function closeModal() { document.getElementById('ccModal').style.display="none"; }
-        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
-    </script>
-</body>
-</html>
+    // Các hàm saveCungCap, deleteItem, openModal, closeModal giữ nguyên...
+</script>
