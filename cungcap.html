@@ -1,36 +1,52 @@
 <script>
-    const currentUser = JSON.parse(localStorage.getItem('user'));
+    // TUYỆT ĐỐI KHÔNG để chữ "export" ở đây bro nhé
+    let currentUser = null;
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            currentUser = JSON.parse(userStr);
+        }
+    } catch (e) {
+        console.error("Lỗi đọc localStorage:", e);
+    }
+
+    // Check bảo mật: Không có user thì mời ra ngoài
+    if (!currentUser) {
+        window.location.href = 'login.html';
+    }
+
     const apiCC = "https://demo-xo8t.onrender.com/api/cungcap";
 
-    // Hàm chạy ngay khi load trang
+    // Hàm tự động chạy khi mở trang
     window.onload = function() {
-        // 1. Hiển thị thông tin User
+        console.log("Tab Nhập Hàng đã sẵn sàng!");
+        
+        // 1. Hiển thị thông tin User lên Header
         if (currentUser) {
-            document.getElementById('display-name').innerText = currentUser.hoTen;
-            document.getElementById('display-role').innerText = currentUser.chucVu;
-        } else {
-            window.location.href = 'login.html';
+            const nameEl = document.getElementById('display-name');
+            const roleEl = document.getElementById('display-role');
+            if (nameEl) nameEl.innerText = currentUser.hoTen || "N/A";
+            if (roleEl) roleEl.innerText = currentUser.chucVu || "N/A";
         }
 
         // 2. Tự động nạp dữ liệu bảng lịch sử
         loadData();
 
-        // 3. Tự động nạp danh sách vào các ô chọn (Modal)
-        loadDropdowns();
-    };
-
-    function logout() {
-        if(confirm("Bro chắc chắn muốn thoát?")) {
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
+        // 3. Tự động nạp danh sách Nhà CC và Nông sản vào Dropdown (trong Modal)
+        if (typeof loadDropdowns === "function") {
+            loadDropdowns();
         }
-    }
+    };
 
     async function loadData() {
         const tbody = document.getElementById('cc-content');
+        if (!tbody) return;
+
         try {
             const res = await fetch(`${apiCC}/all`);
+            if (!res.ok) throw new Error("Lỗi fetch API");
             const data = await res.json();
+            
             tbody.innerHTML = data.map(item => `
                 <tr>
                     <td><b>${item.maNCC}</b></td>
@@ -44,7 +60,8 @@
                     </td>
                 </tr>`).join('');
         } catch (e) {
-            console.error("Lỗi tải bảng cung cấp", e);
+            console.error("Lỗi loadData:", e);
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #f87171;">❌ Server đang lỗi hoặc chưa nạp Entity CungCap!</td></tr>';
         }
     }
 
@@ -57,12 +74,22 @@
             const nccs = await resNCC.json();
             const nss = await resNS.json();
             
-            document.getElementById('selectNCC').innerHTML = nccs.map(n => `<option value="${n.maNCC}">${n.tenNCC}</option>`).join('');
-            document.getElementById('selectNS').innerHTML = nss.map(s => `<option value="${s.maNS}">${s.tenNS}</option>`).join('');
+            const selNCC = document.getElementById('selectNCC');
+            const selNS = document.getElementById('selectNS');
+            
+            if (selNCC) selNCC.innerHTML = nccs.map(n => `<option value="${n.maNCC}">${n.tenNCC}</option>`).join('');
+            if (selNS) selNS.innerHTML = nss.map(s => `<option value="${s.maNS}">${s.tenNS}</option>`).join('');
         } catch (e) {
-            console.error("Lỗi nạp dropdown", e);
+            console.error("Lỗi nạp dropdown:", e);
         }
     }
 
-    // Các hàm saveCungCap, deleteItem, openModal, closeModal giữ nguyên...
+    function logout() {
+        if(confirm("Bro chắc chắn muốn thoát?")) {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+    }
+
+    // Giữ lại các hàm saveCungCap, deleteItem, openModal, closeModal của bro phía dưới...
 </script>

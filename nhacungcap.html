@@ -1,60 +1,76 @@
 <script>
-    // 1. Lấy thông tin user từ localStorage
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-    let allData = [];
-    let isEditMode = false;
-    const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
+    // ĐẢM BẢO KHÔNG CÓ CHỮ "export" NÀO Ở ĐÂY
+    let currentUser = null;
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            currentUser = JSON.parse(userStr);
+        }
+    } catch (e) {
+        console.error("Lỗi đọc dữ liệu user:", e);
+    }
 
-    // 2. Hàm chạy ngay khi trang vừa load xong
+    // Kiểm tra an ninh ngay lập tức
+    if (!currentUser) {
+        window.location.href = 'login.html';
+    }
+
+    const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
+    let allData = [];
+
     window.onload = function() {
+        // Hiện tên nhân viên
         if (currentUser) {
-            // Hiển thị tên và chức vụ lên Header
-            document.getElementById('display-name').innerText = currentUser.hoTen;
-            document.getElementById('display-role').innerText = currentUser.chucVu;
-        } else {
-            // Nếu chưa login thì đuổi về trang login
-            window.location.href = 'login.html';
+            const nameEl = document.getElementById('display-name');
+            const roleEl = document.getElementById('display-role');
+            if (nameEl) nameEl.innerText = currentUser.hoTen;
+            if (roleEl) roleEl.innerText = currentUser.chucVu;
         }
         
-        // Tự động tải dữ liệu bảng
+        // Nạp dữ liệu
         loadData();
     };
 
+    async function loadData() {
+        const status = document.getElementById('status-message');
+        const tbody = document.getElementById('ncc-content');
+        if (!tbody) return;
+
+        try {
+            const response = await fetch(`${apiBase}/all`);
+            if (!response.ok) throw new Error("Server trả về lỗi");
+            allData = await response.json();
+            
+            tbody.innerHTML = allData.map(item => `
+                <tr>
+                    <td><span class="badge">${item.maNCC}</span></td>
+                    <td class="font-bold">${item.tenNCC}</td>
+                    <td>${item.diaChi}</td>
+                    <td><span class="type-tag">${item.loaiHinh}</span></td>
+                    <td>
+                        <button class="action-btn edit" onclick="editItem('${item.maNCC}')"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete" onclick="deleteItem('${item.maNCC}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+            
+            if (status) {
+                status.innerText = `✅ Tìm thấy ${allData.length} nhà cung cấp.`;
+                status.className = "status success";
+            }
+        } catch (error) {
+            console.error("Lỗi API:", error);
+            if (status) {
+                status.innerText = "❌ Lỗi: Server chưa khởi động hoặc sai link!";
+                status.className = "status error";
+            }
+        }
+    }
+
     function logout() {
-        if(confirm("Bro chắc chắn muốn đăng xuất?")) {
+        if(confirm("Xác nhận đăng xuất?")) {
             localStorage.removeItem('user');
             window.location.href = 'login.html';
         }
     }
-
-    async function loadData() {
-        const status = document.getElementById('status-message');
-        try {
-            const response = await fetch(`${apiBase}/all`);
-            allData = await response.json();
-            renderTable(allData);
-            status.innerText = `✅ Tìm thấy ${allData.length} nhà cung cấp.`;
-            status.className = "status success";
-        } catch (error) {
-            status.innerText = "❌ Lỗi tải dữ liệu!";
-            status.className = "status error";
-        }
-    }
-
-    function renderTable(data) {
-        const tbody = document.getElementById('ncc-content');
-        tbody.innerHTML = data.map(item => `
-            <tr>
-                <td><span class="badge">${item.maNCC}</span></td>
-                <td class="font-bold">${item.tenNCC}</td>
-                <td>${item.diaChi}</td>
-                <td><span class="type-tag">${item.loaiHinh}</span></td>
-                <td>
-                    <button class="action-btn edit" onclick="editItem('${item.maNCC}')"><i class="fas fa-edit"></i></button>
-                    <button class="action-btn delete" onclick="deleteItem('${item.maNCC}')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`).join('');
-    }
-
-    // Các hàm openModal, closeModal, saveData, deleteItem, filterData giữ nguyên như cũ...
+    // ... các hàm khác giữ nguyên
 </script>
