@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGRI-ADMIN - Nhân Viên</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <script>
+        const userStr = localStorage.getItem('user');
+        if (!userStr) window.location.href = 'login.html';
+        const currentUser = JSON.parse(userStr);
+    </script>
+
+    <div class="app-container">
+        <nav class="side-nav">
+            <div class="nav-logo"><i class="fas fa-seedling"></i><span>AGRI-ADMIN</span></div>
+            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="cungcap.html"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
+            <a href="nhanvien.html" class="active"><i class="fas fa-users"></i> Nhân Viên</a>
+        </nav>
+
+        <main>
+            <header>
+                <div class="header-main">
+                    <h1>QUẢN LÝ NHÂN VIÊN</h1>
+                    <p>Hệ thống nhân sự và phân ca làm việc</p>
+                </div>
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
+                </div>
+            </header>
+
+            <div class="control-panel">
+                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải lại</button>
+                <button class="btn-tool btn-add" onclick="openModal()"><i class="fas fa-user-plus"></i> Thêm Nhân Viên</button>
+            </div>
+
+            <div class="search-box">
+                <div class="input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm theo tên hoặc mã..." onkeyup="filterData()">
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã NV</th><th>Họ Tên</th><th>Chức Vụ</th><th>SĐT</th><th>Mã Ca</th><th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nv-content"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="nvModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Thông Tin Nhân Viên</h2>
+            <div class="form-group">
+                <label>Mã Nhân Viên:</label>
+                <input type="text" id="maNV" placeholder="Ví dụ: NV05">
+                <label>Họ và Tên:</label>
+                <input type="text" id="hoTen" placeholder="Nguyễn Văn A">
+                <label>Chức Vụ:</label>
+                <select id="chucVu">
+                    <option value="Quản lý">Quản lý</option>
+                    <option value="Thủ kho">Thủ kho</option>
+                    <option value="Bán hàng">Bán hàng</option>
+                    <option value="Kiểm định">Kiểm định</option>
+                </select>
+                <label>Số điện thoại:</label>
+                <input type="text" id="sdt" placeholder="09xxx">
+                <label>Ca làm việc:</label>
+                <select id="maCa">
+                    <option value="C01">Ca Sáng</option>
+                    <option value="C02">Ca Chiều</option>
+                    <option value="C03">Ca Tối</option>
+                </select>
+                <label>Mật khẩu đăng nhập:</label>
+                <input type="password" id="matKhau" placeholder="Mặc định 123456">
+            </div>
+            <div class="modal-actions">
+                <button onclick="saveData()">Lưu nhân viên</button>
+                <button onclick="closeModal()" style="background: #475569;">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = "https://demo-xo8t.onrender.com/api/nhanvien";
+        let allNV = [];
+        let isEdit = false;
+
+        window.onload = function() {
+            if(currentUser) {
+                document.getElementById('display-name').innerText = currentUser.hoTen;
+                document.getElementById('display-role').innerText = currentUser.chucVu;
+            }
+            loadData();
+        };
+
+        async function loadData() {
+            try {
+                const res = await fetch(`${apiBase}/all`);
+                allNV = await res.json();
+                renderTable(allNV);
+            } catch (e) { console.error("Lỗi kết nối server"); }
+        }
+
+        function renderTable(data) {
+            document.getElementById('nv-content').innerHTML = data.map(nv => `
+                <tr>
+                    <td><span class="badge">${nv.maNV}</span></td>
+                    <td class="font-bold">${nv.hoTen}</td>
+                    <td><span class="type-tag">${nv.chucVu}</span></td>
+                    <td>${nv.sdt}</td>
+                    <td><b>${nv.maCa}</b></td>
+                    <td>
+                        <button class="action-btn edit" onclick="editNV('${nv.maNV}')"><i class="fas fa-user-edit"></i></button>
+                        <button class="action-btn delete" onclick="deleteNV('${nv.maNV}')"><i class="fas fa-user-minus"></i></button>
+                    </td>
+                </tr>`).join('');
+        }
+
+        async function saveData() {
+            const payload = {
+                maNV: document.getElementById('maNV').value,
+                hoTen: document.getElementById('hoTen').value,
+                chucVu: document.getElementById('chucVu').value,
+                sdt: document.getElementById('sdt').value,
+                maCa: document.getElementById('maCa').value,
+                matKhau: document.getElementById('matKhau').value
+            };
+
+            const url = isEdit ? `${apiBase}/update/${payload.maNV}` : `${apiBase}/add`;
+            const method = isEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            if(res.ok) { closeModal(); loadData(); }
+        }
+
+        function editNV(id) {
+            const nv = allNV.find(n => n.maNV === id);
+            if(nv) {
+                isEdit = true;
+                document.getElementById('maNV').value = nv.maNV;
+                document.getElementById('maNV').disabled = true;
+                document.getElementById('hoTen').value = nv.hoTen;
+                document.getElementById('chucVu').value = nv.chucVu;
+                document.getElementById('sdt').value = nv.sdt;
+                document.getElementById('maCa').value = nv.maCa;
+                document.getElementById('matKhau').value = nv.matKhau;
+                document.getElementById('nvModal').style.display = "flex";
+            }
+        }
+
+        async function deleteNV(id) {
+            if(confirm(`Xác nhận xóa nhân viên ${id}?`)) {
+                await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
+                loadData();
+            }
+        }
+
+        function filterData() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allNV.filter(n => n.hoTen.toLowerCase().includes(val) || n.maNV.toLowerCase().includes(val));
+            renderTable(filtered);
+        }
+
+        function openModal() {
+            isEdit = false;
+            document.getElementById('maNV').disabled = false;
+            document.getElementById('maNV').value = "";
+            document.getElementById('hoTen').value = "";
+            document.getElementById('nvModal').style.display = "flex";
+        }
+        function closeModal() { document.getElementById('nvModal').style.display = "none"; }
+        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
