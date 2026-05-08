@@ -145,7 +145,7 @@
         }
 
         function renderTable(data) {
-            const isAdmin = currentUser.chucVu === 'Quản lý';
+            const isAdmin = currentUser.chucVu.toLowerCase() === 'admin' || currentUser.chucVu.toLowerCase() === 'quản lý';
             
             document.getElementById('nv-content').innerHTML = data.map(nv => {
                 const isSelf = currentUser.maNV === nv.maNV;
@@ -229,7 +229,7 @@
                 document.getElementById('matKhau').value = nv.matKhau;
                 
                 // Nếu không phải quản lý, khóa các trường nhạy cảm
-                const isAdmin = currentUser.chucVu === 'Quản lý';
+                const isAdmin = currentUser.chucVu.toLowerCase() === 'admin' || currentUser.chucVu.toLowerCase() === 'quản lý';
                 document.getElementById('chucVu').disabled = !isAdmin;
                 document.getElementById('maCa').disabled = !isAdmin;
 
