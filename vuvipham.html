@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGRI-ADMIN - Quản Lý Vi Phạm</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <script>
+        const userStr = localStorage.getItem('user');
+        if (!userStr) window.location.href = 'login.html';
+        const currentUser = JSON.parse(userStr);
+    </script>
+
+    <div class="app-container">
+        <nav class="side-nav">
+            <div class="nav-logo"><i class="fas fa-seedling"></i><span>AGRI-ADMIN</span></div>
+            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="cungcap.html"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
+            <a href="nhanvien.html"><i class="fas fa-users"></i> Nhân Viên</a>
+            <a href="vuvipham.html" class="active"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
+        </nav>
+
+        <main>
+            <header>
+                <div class="header-main">
+                    <h1>QUẢN LÝ VI PHẠM</h1>
+                    <p style="color: #f87171;">Theo dõi sai phạm và hàng giả, hàng nhái</p>
+                </div>
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
+                </div>
+            </header>
+
+            <div class="control-panel">
+                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải lại</button>
+                <button class="btn-tool btn-add" style="background: #e11d48;" onclick="openModal()">
+                    <i class="fas fa-plus-circle"></i> Báo Cáo Vi Phạm Mới
+                </button>
+            </div>
+
+            <div class="search-box">
+                <div class="input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm tên vụ vi phạm..." onkeyup="filterData()">
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã Vụ</th>
+                            <th>Tên Vụ Vi Phạm</th>
+                            <th>Ngày Xảy Ra</th>
+                            <th>Hình Thức Xử Lý</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vvp-content"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="vvpModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Chi Tiết Vụ Vi Phạm</h2>
+            <div class="form-group">
+                <label>Mã Vụ Vi Phạm:</label>
+                <input type="text" id="maVVP" placeholder="Ví dụ: VP01">
+                <label>Tên Vụ Vi Phạm (Hàng giả, quá hạn...):</label>
+                <input type="text" id="tenVVP" placeholder="Nhập nội dung sai phạm">
+                <label>Ngày Xảy Ra:</label>
+                <input type="date" id="ngayXayRa">
+                <label>Hình Thức Xử Lý:</label>
+                <textarea id="hinhThucXuLy" rows="3" placeholder="Ví dụ: Phạt 50tr, tiêu hủy hàng"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button style="background: #e11d48;" onclick="saveData()">Lưu báo cáo</button>
+                <button onclick="closeModal()" style="background: #475569;">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = "https://demo-xo8t.onrender.com/api/vuvipham";
+        let allVVP = [];
+        let isEdit = false;
+
+        window.onload = function() {
+            const nameEl = document.getElementById('display-name');
+            const roleEl = document.getElementById('display-role');
+            if (currentUser && nameEl && roleEl) {
+                nameEl.innerText = currentUser.hoTen;
+                roleEl.innerText = currentUser.chucVu;
+            }
+            loadData();
+        };
+
+        async function loadData() {
+            try {
+                const res = await fetch(`${apiBase}/all`);
+                allVVP = await res.json();
+                renderTable(allVVP);
+            } catch (e) { console.error("Lỗi server"); }
+        }
+
+        function renderTable(data) {
+            document.getElementById('vvp-content').innerHTML = data.map(v => `
+                <tr>
+                    <td><span class="badge" style="background: #fee2e2; color: #991b1b;">${v.maVVP}</span></td>
+                    <td class="font-bold">${v.tenVVP}</td>
+                    <td>${v.ngayXayRa}</td>
+                    <td style="color: #b91c1c;">${v.hinhThucXuLy}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="editVVP('${v.maVVP}')"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete" onclick="deleteVVP('${v.maVVP}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+        }
+
+        async function saveData() {
+            const payload = {
+                maVVP: document.getElementById('maVVP').value,
+                tenVVP: document.getElementById('tenVVP').value,
+                ngayXayRa: document.getElementById('ngayXayRa').value,
+                hinhThucXuLy: document.getElementById('hinhThucXuLy').value
+            };
+
+            const url = isEdit ? `${apiBase}/update/${payload.maVVP}` : `${apiBase}/add`;
+            const method = isEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            if(res.ok) { closeModal(); loadData(); }
+        }
+
+        function editVVP(id) {
+            const v = allVVP.find(x => x.maVVP === id);
+            if(v) {
+                isEdit = true;
+                document.getElementById('maVVP').value = v.maVVP;
+                document.getElementById('maVVP').disabled = true;
+                document.getElementById('tenVVP').value = v.tenVVP;
+                document.getElementById('ngayXayRa').value = v.ngayXayRa;
+                document.getElementById('hinhThucXuLy').value = v.hinhThucXuLy;
+                document.getElementById('vvpModal').style.display = "flex";
+            }
+        }
+
+        async function deleteVVP(id) {
+            if(confirm(`Xóa vụ vi phạm ${id}?`)) {
+                await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
+                loadData();
+            }
+        }
+
+        function openModal() {
+            isEdit = false;
+            document.getElementById('maVVP').disabled = false;
+            document.getElementById('maVVP').value = "";
+            document.getElementById('tenVVP').value = "";
+            document.getElementById('vvpModal').style.display = "flex";
+        }
+        function closeModal() { document.getElementById('vvpModal').style.display = "none"; }
+        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+        
+        function filterData() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allVVP.filter(v => v.tenVVP.toLowerCase().includes(val));
+            renderTable(filtered);
+        }
+    </script>
+</body>
+</html>
