@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AGRI-ADMIN - Nhân Viên</title>
+    <title>AGRI-ADMIN - Quản Lý Nhân Viên</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -27,34 +27,43 @@
             <header>
                 <div class="header-main">
                     <h1>QUẢN LÝ NHÂN VIÊN</h1>
-                    <p>Hệ thống nhân sự và phân ca làm việc</p>
+                    <p>Hệ thống nhân sự và phân quyền truy cập</p>
                 </div>
                 <div class="user-info-bar">
                     <div class="user-details">
                         <span class="user-name" id="display-name">---</span>
                         <span class="user-role" id="display-role">---</span>
                     </div>
-                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
+                    <button class="btn-logout" onclick="logout()" title="Đăng xuất"><i class="fas fa-power-off"></i></button>
                 </div>
             </header>
 
             <div class="control-panel">
                 <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải lại</button>
-                <button class="btn-tool btn-add" onclick="openModal()"><i class="fas fa-user-plus"></i> Thêm Nhân Viên</button>
+                <button id="btnAddNV" class="btn-tool btn-add" onclick="openModal()">
+                    <i class="fas fa-user-plus"></i> Thêm Nhân Viên Mới
+                </button>
             </div>
 
             <div class="search-box">
                 <div class="input-group">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Tìm theo tên hoặc mã..." onkeyup="filterData()">
+                    <input type="text" id="searchInput" placeholder="Tìm tên hoặc mã nhân viên..." onkeyup="filterData()">
                 </div>
             </div>
+
+            <div id="status-message" class="status">Đang nạp danh sách nhân sự...</div>
 
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
-                            <th>Mã NV</th><th>Họ Tên</th><th>Chức Vụ</th><th>SĐT</th><th>Mã Ca</th><th>Thao tác</th>
+                            <th>Mã NV</th>
+                            <th>Họ Tên</th>
+                            <th>Chức Vụ</th>
+                            <th>Số Điện Thoại</th>
+                            <th>Mã Ca</th>
+                            <th style="width: 120px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="nv-content"></tbody>
@@ -69,9 +78,11 @@
             <h2 id="modalTitle">Thông Tin Nhân Viên</h2>
             <div class="form-group">
                 <label>Mã Nhân Viên:</label>
-                <input type="text" id="maNV" placeholder="Ví dụ: NV05">
+                <input type="text" id="maNV" placeholder="Ví dụ: NV01">
+                
                 <label>Họ và Tên:</label>
-                <input type="text" id="hoTen" placeholder="Nguyễn Văn A">
+                <input type="text" id="hoTen" placeholder="Nhập họ tên">
+                
                 <label>Chức Vụ:</label>
                 <select id="chucVu">
                     <option value="Quản lý">Quản lý</option>
@@ -79,19 +90,22 @@
                     <option value="Bán hàng">Bán hàng</option>
                     <option value="Kiểm định">Kiểm định</option>
                 </select>
+                
                 <label>Số điện thoại:</label>
-                <input type="text" id="sdt" placeholder="09xxx">
+                <input type="text" id="sdt" placeholder="09xxxxxxxx">
+                
                 <label>Ca làm việc:</label>
                 <select id="maCa">
-                    <option value="C01">Ca Sáng</option>
-                    <option value="C02">Ca Chiều</option>
-                    <option value="C03">Ca Tối</option>
+                    <option value="C01">Ca Sáng (06:00 - 12:00)</option>
+                    <option value="C02">Ca Chiều (12:00 - 18:00)</option>
+                    <option value="C03">Ca Tối (18:00 - 23:00)</option>
                 </select>
-                <label>Mật khẩu đăng nhập:</label>
-                <input type="password" id="matKhau" placeholder="Mặc định 123456">
+                
+                <label>Mật khẩu:</label>
+                <input type="password" id="matKhau" placeholder="Nhập mật khẩu mới">
             </div>
             <div class="modal-actions">
-                <button onclick="saveData()">Lưu nhân viên</button>
+                <button onclick="saveData()">Lưu thông tin</button>
                 <button onclick="closeModal()" style="background: #475569;">Hủy</button>
             </div>
         </div>
@@ -103,34 +117,65 @@
         let isEdit = false;
 
         window.onload = function() {
+            // 1. Hiển thị User Header
             if(currentUser) {
                 document.getElementById('display-name').innerText = currentUser.hoTen;
                 document.getElementById('display-role').innerText = currentUser.chucVu;
+                
+                // 2. Ẩn nút Thêm nếu không phải Quản lý
+                if (currentUser.chucVu !== 'Quản lý') {
+                    document.getElementById('btnAddNV').style.display = 'none';
+                }
             }
             loadData();
         };
 
         async function loadData() {
+            const status = document.getElementById('status-message');
             try {
                 const res = await fetch(`${apiBase}/all`);
                 allNV = await res.json();
                 renderTable(allNV);
-            } catch (e) { console.error("Lỗi kết nối server"); }
+                status.innerText = `✅ Hệ thống có ${allNV.length} nhân sự.`;
+                status.className = "status success";
+            } catch (e) {
+                status.innerText = "❌ Lỗi kết nối dữ liệu nhân sự!";
+                status.className = "status error";
+            }
         }
 
         function renderTable(data) {
-            document.getElementById('nv-content').innerHTML = data.map(nv => `
-                <tr>
-                    <td><span class="badge">${nv.maNV}</span></td>
-                    <td class="font-bold">${nv.hoTen}</td>
-                    <td><span class="type-tag">${nv.chucVu}</span></td>
-                    <td>${nv.sdt}</td>
-                    <td><b>${nv.maCa}</b></td>
-                    <td>
+            const isAdmin = currentUser.chucVu === 'Quản lý';
+            
+            document.getElementById('nv-content').innerHTML = data.map(nv => {
+                const isSelf = currentUser.maNV === nv.maNV;
+                let buttons = '';
+
+                if (isAdmin) {
+                    // Admin thấy hết
+                    buttons = `
                         <button class="action-btn edit" onclick="editNV('${nv.maNV}')"><i class="fas fa-user-edit"></i></button>
                         <button class="action-btn delete" onclick="deleteNV('${nv.maNV}')"><i class="fas fa-user-minus"></i></button>
-                    </td>
-                </tr>`).join('');
+                    `;
+                } else if (isSelf) {
+                    // Nhân viên thường chỉ thấy nút Sửa của chính mình
+                    buttons = `
+                        <button class="action-btn edit" onclick="editNV('${nv.maNV}')" title="Sửa thông tin cá nhân"><i class="fas fa-user-edit"></i></button>
+                    `;
+                } else {
+                    buttons = `<span style="color: #94a3b8; font-size: 0.8rem;">Chỉ xem</span>`;
+                }
+
+                return `
+                    <tr>
+                        <td><span class="badge">${nv.maNV}</span></td>
+                        <td class="font-bold">${nv.hoTen} ${isSelf ? '<small>(Bạn)</small>' : ''}</td>
+                        <td><span class="type-tag">${nv.chucVu}</span></td>
+                        <td>${nv.sdt}</td>
+                        <td><b>${nv.maCa}</b></td>
+                        <td>${buttons}</td>
+                    </tr>`;
+            }).join('');
         }
 
         async function saveData() {
@@ -146,19 +191,35 @@
             const url = isEdit ? `${apiBase}/update/${payload.maNV}` : `${apiBase}/add`;
             const method = isEdit ? "PUT" : "POST";
 
-            const res = await fetch(url, {
-                method: method,
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload)
-            });
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "currentRole": currentUser.chucVu, // Gửi quyền để Backend check
+                        "currentMaNV": currentUser.maNV    // Gửi mã để Backend check
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-            if(res.ok) { closeModal(); loadData(); }
+                if(res.ok) {
+                    alert("Cập nhật nhân sự thành công!");
+                    closeModal();
+                    loadData();
+                } else {
+                    const errorText = await res.text();
+                    alert("Lỗi: " + errorText);
+                }
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+            }
         }
 
         function editNV(id) {
             const nv = allNV.find(n => n.maNV === id);
             if(nv) {
                 isEdit = true;
+                document.getElementById('modalTitle').innerText = "Cập Nhật Thông Tin";
                 document.getElementById('maNV').value = nv.maNV;
                 document.getElementById('maNV').disabled = true;
                 document.getElementById('hoTen').value = nv.hoTen;
@@ -166,14 +227,26 @@
                 document.getElementById('sdt').value = nv.sdt;
                 document.getElementById('maCa').value = nv.maCa;
                 document.getElementById('matKhau').value = nv.matKhau;
+                
+                // Nếu không phải quản lý, khóa các trường nhạy cảm
+                const isAdmin = currentUser.chucVu === 'Quản lý';
+                document.getElementById('chucVu').disabled = !isAdmin;
+                document.getElementById('maCa').disabled = !isAdmin;
+
                 document.getElementById('nvModal').style.display = "flex";
             }
         }
 
         async function deleteNV(id) {
-            if(confirm(`Xác nhận xóa nhân viên ${id}?`)) {
-                await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
-                loadData();
+            if(confirm(`Xác nhận xóa nhân viên ${id}? Hành động này không thể hoàn tác!`)) {
+                try {
+                    const res = await fetch(`${apiBase}/delete/${id}`, {
+                        method: "DELETE",
+                        headers: { "currentRole": currentUser.chucVu }
+                    });
+                    if (res.ok) loadData();
+                    else alert("Chỉ Admin mới có quyền xóa!");
+                } catch (e) { alert("Lỗi xóa dữ liệu!"); }
             }
         }
 
@@ -185,11 +258,14 @@
 
         function openModal() {
             isEdit = false;
+            document.getElementById('modalTitle').innerText = "Thêm Nhân Viên Mới";
             document.getElementById('maNV').disabled = false;
-            document.getElementById('maNV').value = "";
-            document.getElementById('hoTen').value = "";
+            document.getElementById('chucVu').disabled = false;
+            document.getElementById('maCa').disabled = false;
+            ['maNV', 'hoTen', 'sdt', 'matKhau'].forEach(id => document.getElementById(id).value = "");
             document.getElementById('nvModal').style.display = "flex";
         }
+        
         function closeModal() { document.getElementById('nvModal').style.display = "none"; }
         function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
     </script>
