@@ -1,95 +1,223 @@
-<script>
-    // TUYỆT ĐỐI KHÔNG để chữ "export" ở đây bro nhé
-    let currentUser = null;
-    try {
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGRI-ADMIN - Nhập Hàng</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <script>
         const userStr = localStorage.getItem('user');
-        if (userStr) {
-            currentUser = JSON.parse(userStr);
-        }
-    } catch (e) {
-        console.error("Lỗi đọc localStorage:", e);
-    }
-
-    // Check bảo mật: Không có user thì mời ra ngoài
-    if (!currentUser) {
-        window.location.href = 'login.html';
-    }
-
-    const apiCC = "https://demo-xo8t.onrender.com/api/cungcap";
-
-    // Hàm tự động chạy khi mở trang
-    window.onload = function() {
-        console.log("Tab Nhập Hàng đã sẵn sàng!");
-        
-        // 1. Hiển thị thông tin User lên Header
-        if (currentUser) {
-            const nameEl = document.getElementById('display-name');
-            const roleEl = document.getElementById('display-role');
-            if (nameEl) nameEl.innerText = currentUser.hoTen || "N/A";
-            if (roleEl) roleEl.innerText = currentUser.chucVu || "N/A";
-        }
-
-        // 2. Tự động nạp dữ liệu bảng lịch sử
-        loadData();
-
-        // 3. Tự động nạp danh sách Nhà CC và Nông sản vào Dropdown (trong Modal)
-        if (typeof loadDropdowns === "function") {
-            loadDropdowns();
-        }
-    };
-
-    async function loadData() {
-        const tbody = document.getElementById('cc-content');
-        if (!tbody) return;
-
-        try {
-            const res = await fetch(`${apiCC}/all`);
-            if (!res.ok) throw new Error("Lỗi fetch API");
-            const data = await res.json();
-            
-            tbody.innerHTML = data.map(item => `
-                <tr>
-                    <td><b>${item.maNCC}</b></td>
-                    <td>${item.maNS}</td>
-                    <td class="text-green">+ ${item.soLuongCC}</td>
-                    <td>${item.ngayCC}</td>
-                    <td>
-                        <button class="action-btn delete" onclick="deleteItem('${item.maNCC}', '${item.maNS}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>`).join('');
-        } catch (e) {
-            console.error("Lỗi loadData:", e);
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #f87171;">❌ Server đang lỗi hoặc chưa nạp Entity CungCap!</td></tr>';
-        }
-    }
-
-    async function loadDropdowns() {
-        try {
-            const [resNCC, resNS] = await Promise.all([
-                fetch("https://demo-xo8t.onrender.com/api/nhacungcap/all"),
-                fetch("https://demo-xo8t.onrender.com/api/nongsan/all")
-            ]);
-            const nccs = await resNCC.json();
-            const nss = await resNS.json();
-            
-            const selNCC = document.getElementById('selectNCC');
-            const selNS = document.getElementById('selectNS');
-            
-            if (selNCC) selNCC.innerHTML = nccs.map(n => `<option value="${n.maNCC}">${n.tenNCC}</option>`).join('');
-            if (selNS) selNS.innerHTML = nss.map(s => `<option value="${s.maNS}">${s.tenNS}</option>`).join('');
-        } catch (e) {
-            console.error("Lỗi nạp dropdown:", e);
-        }
-    }
-
-    function logout() {
-        if(confirm("Bro chắc chắn muốn thoát?")) {
-            localStorage.removeItem('user');
+        if (!userStr) {
             window.location.href = 'login.html';
         }
-    }
+        const currentUser = JSON.parse(userStr);
+    </script>
 
-    // Giữ lại các hàm saveCungCap, deleteItem, openModal, closeModal của bro phía dưới...
-</script>
+    <div class="app-container">
+        <nav class="side-nav">
+            <div class="nav-logo">
+                <i class="fas fa-seedling"></i>
+                <span>AGRI-ADMIN</span>
+            </div>
+            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="cungcap.html" class="active"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
+            <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
+        </nav>
+
+        <main>
+            <header>
+                <div class="header-main">
+                    <h1>LỊCH SỬ NHẬP HÀNG</h1>
+                    <p>Theo dõi dòng chảy sản phẩm và tồn kho</p>
+                </div>
+                
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()" title="Đăng xuất">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="control-panel">
+                <button onclick="loadData()">
+                    <i class="fas fa-sync-alt"></i> Tải dữ liệu
+                </button>
+                <button class="btn-tool btn-add" onclick="openModal()">
+                    <i class="fas fa-file-import"></i> Tạo Phiếu Nhập
+                </button>
+            </div>
+
+            <div id="status-message" class="status">Đang tải lịch sử nhập kho...</div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nhà Cung Cấp</th>
+                            <th>Sản Phẩm</th>
+                            <th>Số Lượng</th>
+                            <th>Ngày Nhập</th>
+                            <th style="width: 80px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cc-content"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="ccModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2>Tạo Phiếu Cung Cấp</h2>
+            <div class="form-group">
+                <label>Chọn Nhà Cung Cấp:</label>
+                <select id="selectNCC"></select>
+                
+                <label>Chọn Nông Sản:</label>
+                <select id="selectNS"></select>
+                
+                <label>Số lượng cung cấp:</label>
+                <input type="number" id="soLuongCC" placeholder="Ví dụ: 100">
+                
+                <label>Ngày cung cấp:</label>
+                <input type="date" id="ngayCC">
+            </div>
+            <div class="modal-actions">
+                <button onclick="saveCungCap()">Xác nhận nhập kho</button>
+                <button onclick="closeModal()" style="background: #475569;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiCC = "https://demo-xo8t.onrender.com/api/cungcap";
+        
+        // TỰ ĐỘNG CHẠY KHI MỞ TRANG
+        window.onload = function() {
+            // 1. Hiển thị User an toàn
+            const nameEl = document.getElementById('display-name');
+            const roleEl = document.getElementById('display-role');
+            if (currentUser && nameEl && roleEl) {
+                nameEl.innerText = currentUser.hoTen;
+                roleEl.innerText = currentUser.chucVu;
+            }
+
+            // 2. Tự động tải dữ liệu
+            loadData();
+            loadDropdowns();
+        };
+
+        function logout() {
+            if(confirm("Bro chắc chắn muốn thoát?")) {
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        async function loadData() {
+            const tbody = document.getElementById('cc-content');
+            const status = document.getElementById('status-message');
+            if (!tbody) return;
+
+            try {
+                const res = await fetch(`${apiCC}/all`);
+                if (!res.ok) throw new Error("API lỗi");
+                const data = await res.json();
+                
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td><b>${item.maNCC}</b></td>
+                        <td>${item.maNS}</td>
+                        <td class="text-green">+ ${item.soLuongCC}</td>
+                        <td>${item.ngayCC}</td>
+                        <td>
+                            <button class="action-btn delete" onclick="deleteItem('${item.maNCC}', '${item.maNS}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`).join('');
+                
+                if(status) {
+                    status.innerText = `✅ Đã tải ${data.length} phiếu nhập.`;
+                    status.className = "status success";
+                }
+            } catch (e) {
+                console.error(e);
+                if(status) {
+                    status.innerText = "❌ Lỗi: Server chưa khởi động hoặc sai link!";
+                    status.className = "status error";
+                }
+            }
+        }
+
+        async function loadDropdowns() {
+            try {
+                const [resNCC, resNS] = await Promise.all([
+                    fetch("https://demo-xo8t.onrender.com/api/nhacungcap/all"),
+                    fetch("https://demo-xo8t.onrender.com/api/nongsan/all")
+                ]);
+                const nccs = await resNCC.json();
+                const nss = await resNS.json();
+                
+                const selNCC = document.getElementById('selectNCC');
+                const selNS = document.getElementById('selectNS');
+                
+                if (selNCC) selNCC.innerHTML = nccs.map(n => `<option value="${n.maNCC}">${n.tenNCC}</option>`).join('');
+                if (selNS) selNS.innerHTML = nss.map(s => `<option value="${s.maNS}">${s.tenNS}</option>`).join('');
+            } catch (e) {
+                console.error("Lỗi nạp dropdown:", e);
+            }
+        }
+
+        async function saveCungCap() {
+            const payload = {
+                maNCC: document.getElementById('selectNCC').value,
+                maNS: document.getElementById('selectNS').value,
+                soLuongCC: parseInt(document.getElementById('soLuongCC').value),
+                ngayCC: document.getElementById('ngayCC').value
+            };
+            
+            if(!payload.soLuongCC || !payload.ngayCC) {
+                alert("Vui lòng nhập đủ thông tin!");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${apiCC}/add`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) {
+                    alert("Nhập kho thành công!");
+                    closeModal();
+                    loadData();
+                } else {
+                    alert("Lỗi khi lưu!");
+                }
+            } catch(e) { alert("Lỗi kết nối!"); }
+        }
+
+        async function deleteItem(maNCC, maNS) {
+            if (confirm(`Xóa phiếu nhập của ${maNCC} cho ${maNS}?`)) {
+                try {
+                    await fetch(`${apiCC}/delete/${maNCC}/${maNS}`, { method: "DELETE" });
+                    loadData();
+                } catch(e) { alert("Lỗi khi xóa!"); }
+            }
+        }
+
+        function openModal() { document.getElementById('ccModal').style.display = "flex"; }
+        function closeModal() { document.getElementById('ccModal').style.display = "none"; }
+    </script>
+</body>
+</html>

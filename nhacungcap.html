@@ -1,47 +1,157 @@
-<script>
-    // ĐẢM BẢO KHÔNG CÓ CHỮ "export" NÀO Ở ĐÂY
-    let currentUser = null;
-    try {
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGRI-ADMIN - Nhà Cung Cấp</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <script>
         const userStr = localStorage.getItem('user');
-        if (userStr) {
-            currentUser = JSON.parse(userStr);
+        if (!userStr) {
+            window.location.href = 'login.html';
         }
-    } catch (e) {
-        console.error("Lỗi đọc dữ liệu user:", e);
-    }
+        const currentUser = JSON.parse(userStr);
+    </script>
 
-    // Kiểm tra an ninh ngay lập tức
-    if (!currentUser) {
-        window.location.href = 'login.html';
-    }
+    <div class="app-container">
+        <nav class="side-nav">
+            <div class="nav-logo">
+                <i class="fas fa-seedling"></i>
+                <span>AGRI-ADMIN</span>
+            </div>
+            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html" class="active"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="cungcap.html"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
+            <a href="#"><i class="fas fa-users"></i> Nhân Viên</a>
+        </nav>
 
-    const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
-    let allData = [];
+        <main>
+            <header>
+                <div class="header-main">
+                    <h1>QUẢN LÝ NHÀ CUNG CẤP</h1>
+                    <p>Danh mục đối tác cung ứng hệ thống</p>
+                </div>
+                
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+            </header>
 
-    window.onload = function() {
-        // Hiện tên nhân viên
-        if (currentUser) {
+            <div class="control-panel">
+                <button onclick="loadData()">
+                    <i class="fas fa-sync-alt"></i> Làm mới
+                </button>
+                <button class="btn-tool btn-add" onclick="openModal()">
+                    <i class="fas fa-plus-circle"></i> Thêm Nhà Cung Cấp
+                </button>
+            </div>
+
+            <div class="search-box">
+                <div class="input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm tên nhà cung cấp..." onkeyup="filterData()">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-filter"></i>
+                    <select id="filterLoaiHinh" onchange="filterData()">
+                        <option value="">Tất cả loại hình</option>
+                        <option value="Sản xuất">Sản xuất</option>
+                        <option value="Phân phối">Phân phối</option>
+                        <option value="Bán buôn">Bán buôn</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="status-message" class="status">Đang tải dữ liệu...</div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã NCC</th>
+                            <th>Tên Nhà Cung Cấp</th>
+                            <th>Địa Chỉ</th>
+                            <th>Loại Hình</th>
+                            <th style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ncc-content"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="crudModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Thêm Nhà Cung Cấp</h2>
+            <div class="form-group">
+                <label>Mã Nhà Cung Cấp:</label>
+                <input type="text" id="maNCC" placeholder="Ví dụ: NCC01">
+                <label>Tên Nhà Cung Cấp:</label>
+                <input type="text" id="tenNCC" placeholder="Tên đối tác">
+                <label>Địa Chỉ:</label>
+                <input type="text" id="diaChi" placeholder="Địa chỉ">
+                <label>Loại Hình:</label>
+                <select id="loaiHinh">
+                    <option value="Sản xuất">Sản xuất</option>
+                    <option value="Phân phối">Phân phối</option>
+                    <option value="Bán buôn">Bán buôn</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button onclick="saveData()">Lưu dữ liệu</button>
+                <button onclick="closeModal()" style="background: #475569;">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = "https://demo-xo8t.onrender.com/api/nhacungcap";
+        let allData = [];
+        let isEditMode = false;
+
+        // TỰ ĐỘNG CHẠY KHI LOAD TRANG
+        window.onload = function() {
+            // 1. Hiển thị User (Dùng kiểm tra an toàn)
             const nameEl = document.getElementById('display-name');
             const roleEl = document.getElementById('display-role');
-            if (nameEl) nameEl.innerText = currentUser.hoTen;
-            if (roleEl) roleEl.innerText = currentUser.chucVu;
-        }
-        
-        // Nạp dữ liệu
-        loadData();
-    };
-
-    async function loadData() {
-        const status = document.getElementById('status-message');
-        const tbody = document.getElementById('ncc-content');
-        if (!tbody) return;
-
-        try {
-            const response = await fetch(`${apiBase}/all`);
-            if (!response.ok) throw new Error("Server trả về lỗi");
-            allData = await response.json();
+            if (currentUser && nameEl && roleEl) {
+                nameEl.innerText = currentUser.hoTen;
+                roleEl.innerText = currentUser.chucVu;
+            }
             
-            tbody.innerHTML = allData.map(item => `
+            // 2. Tự động tải bảng
+            loadData();
+        };
+
+        async function loadData() {
+            const status = document.getElementById('status-message');
+            const tbody = document.getElementById('ncc-content');
+            try {
+                const response = await fetch(`${apiBase}/all`);
+                allData = await response.json();
+                renderTable(allData);
+                status.innerText = `✅ Tìm thấy ${allData.length} nhà cung cấp.`;
+                status.className = "status success";
+            } catch (error) {
+                status.innerText = "❌ Lỗi: Server chưa khởi động hoặc sai link!";
+                status.className = "status error";
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('ncc-content');
+            tbody.innerHTML = data.map(item => `
                 <tr>
                     <td><span class="badge">${item.maNCC}</span></td>
                     <td class="font-bold">${item.tenNCC}</td>
@@ -52,25 +162,74 @@
                         <button class="action-btn delete" onclick="deleteItem('${item.maNCC}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`).join('');
-            
-            if (status) {
-                status.innerText = `✅ Tìm thấy ${allData.length} nhà cung cấp.`;
-                status.className = "status success";
-            }
-        } catch (error) {
-            console.error("Lỗi API:", error);
-            if (status) {
-                status.innerText = "❌ Lỗi: Server chưa khởi động hoặc sai link!";
-                status.className = "status error";
-            }
         }
-    }
 
-    function logout() {
-        if(confirm("Xác nhận đăng xuất?")) {
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
+        function logout() {
+            if(confirm("Xác nhận đăng xuất?")) {
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
         }
-    }
-    // ... các hàm khác giữ nguyên
-</script>
+
+        function openModal(edit = false) {
+            isEditMode = edit;
+            document.getElementById('modalTitle').innerText = edit ? "Sửa Nhà Cung Cấp" : "Thêm Nhà Cung Cấp";
+            document.getElementById('maNCC').disabled = edit;
+            document.getElementById('crudModal').style.display = "flex";
+            if (!edit) {
+                ['maNCC', 'tenNCC', 'diaChi'].forEach(id => document.getElementById(id).value = "");
+            }
+        }
+
+        function closeModal() { document.getElementById('crudModal').style.display = "none"; }
+
+        async function saveData() {
+            const payload = {
+                maNCC: document.getElementById('maNCC').value,
+                tenNCC: document.getElementById('tenNCC').value,
+                diaChi: document.getElementById('diaChi').value,
+                loaiHinh: document.getElementById('loaiHinh').value
+            };
+            const url = isEditMode ? `${apiBase}/update/${payload.maNCC}` : `${apiBase}/add`;
+            const method = isEditMode ? "PUT" : "POST";
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) { closeModal(); loadData(); }
+                else alert("Lỗi dữ liệu!");
+            } catch (e) { alert("Lỗi kết nối!"); }
+        }
+
+        async function deleteItem(id) {
+            if (confirm(`Xóa ${id}?`)) {
+                await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
+                loadData();
+            }
+        }
+
+        function filterData() {
+            const name = document.getElementById('searchInput').value.toLowerCase();
+            const loai = document.getElementById('filterLoaiHinh').value;
+            const filtered = allData.filter(i => 
+                i.tenNCC.toLowerCase().includes(name) && (loai === "" || i.loaiHinh === loai)
+            );
+            renderTable(filtered);
+        }
+
+        function editItem(id) {
+            const item = allData.find(i => i.maNCC === id);
+            if (item) {
+                document.getElementById('maNCC').value = item.maNCC;
+                document.getElementById('tenNCC').value = item.tenNCC;
+                document.getElementById('diaChi').value = item.diaChi;
+                document.getElementById('loaiHinh').value = item.loaiHinh;
+                openModal(true);
+            }
+        }
+    </script>
+</body>
+</html>
