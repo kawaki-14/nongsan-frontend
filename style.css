@@ -358,3 +358,15 @@ button {
     background: #450a0a;
     color: #f87171;
 }
+
+.expired {
+    color: #e11d48 !important;
+    font-weight: bold;
+    background-color: #fff1f2;
+}
+
+.near-expiry {
+    color: #d97706 !important;
+    font-weight: bold;
+    background-color: #fffbeb;
+}
