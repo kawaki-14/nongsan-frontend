@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Thêm CSS cảnh báo trực tiếp để bro đỡ phải sửa file style.css */
         .expired { background-color: #fee2e2 !important; color: #b91c1c !important; font-weight: bold; }
         .near-expiry { background-color: #fef3c7 !important; color: #92400e !important; font-weight: bold; }
         .btn-warning-hsd { background: #ea580c !important; color: white !important; }
@@ -35,7 +34,7 @@
             <header>
                 <div class="header-main">
                     <h1>QUẢN LÝ NÔNG SẢN</h1>
-                    <p>Hệ thống truy xuất nguồn gốc và kiểm soát hạn sử dụng</p>
+                    <p>Hệ thống truy xuất nguồn gốc và kiểm soát kho</p>
                 </div>
                 <div class="user-info-bar">
                     <div class="user-details">
@@ -48,7 +47,7 @@
 
             <div class="control-panel">
                 <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải lại</button>
-                <button class="btn-tool btn-add" onclick="openModal()"><i class="fas fa-plus-circle"></i> Thêm Mới</button>
+                <button class="btn-tool btn-add" onclick="openModal()"><i class="fas fa-plus-circle"></i> Thêm Nông Sản</button>
                 <button class="btn-tool btn-warning-hsd" onclick="filterSapHetHan()">
                     <i class="fas fa-hourglass-end"></i> Cảnh Báo Hạn
                 </button>
@@ -59,9 +58,26 @@
                     <i class="fas fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Tìm tên nông sản..." onkeyup="filterData()">
                 </div>
+
+                <div class="input-group">
+                    <i class="fas fa-filter"></i>
+                    <select id="filterLoai" onchange="filterData()">
+                        <option value="">Tất cả loại</option>
+                        <option value="Trái cây">Trái cây</option>
+                        <option value="Rau củ">Rau củ</option>
+                        <option value="Lương thực">Lương thực</option>
+                        <option value="Gia vị">Gia vị</option>
+                        <option value="Hải sản">Hải sản</option>
+                    </select>
+                </div>
+
                 <div class="button-group">
-                    <button id="sortIDBtn" onclick="toggleSortID()" class="btn-tool"><i class="fas fa-sort"></i> Mã</button>
-                    <button id="sortPriceBtn" onclick="toggleSortPrice()" class="btn-tool"><i class="fas fa-sort"></i> Giá</button>
+                    <button id="sortIDBtn" onclick="toggleSortID()" class="btn-tool" title="Sắp xếp theo mã">
+                        <i class="fas fa-sort-alpha-down"></i> Mã
+                    </button>
+                    <button id="sortPriceBtn" onclick="toggleSortPrice()" class="btn-tool" title="Sắp xếp theo giá">
+                        <i class="fas fa-sort-numeric-down"></i> Giá
+                    </button>
                 </div>
             </div>
 
@@ -77,7 +93,7 @@
                             <th>Số lượng</th>
                             <th>Giá (VNĐ)</th>
                             <th>Hạn Sử Dụng</th>
-                            <th style="width: 100px;">Thao tác</th>
+                            <th style="width: 120px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="data-content"></tbody>
@@ -99,6 +115,7 @@
                     <option value="Rau củ">Rau củ</option>
                     <option value="Lương thực">Lương thực</option>
                     <option value="Hải sản">Hải sản</option>
+                    <option value="Gia vị">Gia vị</option>
                 </select>
                 <label>Số lượng:</label><input type="number" id="soLuong">
                 <label>Giá tiền:</label><input type="number" id="gia">
@@ -108,7 +125,7 @@
             </div>
             <div class="modal-actions">
                 <button onclick="saveData()">Lưu dữ liệu</button>
-                <button onclick="closeModal()" style="background: #475569;">Đóng</button>
+                <button onclick="closeModal()" style="background: #475569;">Hủy</button>
             </div>
         </div>
     </div>
@@ -117,6 +134,9 @@
         const apiBase = "https://demo-xo8t.onrender.com/api/nongsan";
         let allData = [];
         let isEditMode = false;
+        
+        // Biến lưu trạng thái sắp xếp
+        let sortOrder = { maNS: 'asc', gia: 'asc' };
 
         window.onload = function() {
             if(currentUser) {
@@ -131,30 +151,22 @@
                 const res = await fetch(`${apiBase}/all`);
                 allData = await res.json();
                 renderTable(allData);
-            } catch (e) { document.getElementById('status-message').innerText = "❌ Lỗi kết nối!"; }
+            } catch (e) { console.error("Lỗi API"); }
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('data-content');
             const today = new Date();
-            today.setHours(0,0,0,0); // Reset giờ để so sánh ngày chính xác
+            today.setHours(0,0,0,0);
 
             tbody.innerHTML = data.map(item => {
                 let hsdClass = "";
-                let warningIcon = "";
-                
+                let warning = "";
                 if (item.hsd) {
                     const hsdDate = new Date(item.hsd);
-                    const diffTime = hsdDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays < 0) {
-                        hsdClass = "expired";
-                        warningIcon = '<i class="fas fa-skull-crossbones"></i> HẾT HẠN';
-                    } else if (diffDays <= 7) {
-                        hsdClass = "near-expiry";
-                        warningIcon = '<i class="fas fa-exclamation-circle"></i> SẮP HẾT';
-                    }
+                    const diffDays = Math.ceil((hsdDate - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays < 0) { hsdClass = "expired"; warning = "HẾT HẠN"; }
+                    else if (diffDays <= 7) { hsdClass = "near-expiry"; warning = "SẮP HẾT"; }
                 }
 
                 return `
@@ -164,7 +176,7 @@
                         <td><span class="type-tag">${item.loai || '---'}</span></td>
                         <td>${item.soLuong}</td>
                         <td class="text-green">${item.gia?.toLocaleString()} đ</td>
-                        <td>${item.hsd || '---'} <br> <small>${warningIcon}</small></td>
+                        <td>${item.hsd || '---'}<br><small>${warning}</small></td>
                         <td>
                             <button class="action-btn edit" onclick="editItem('${item.maNS}')"><i class="fas fa-edit"></i></button>
                             <button class="action-btn delete" onclick="deleteItem('${item.maNS}')"><i class="fas fa-trash"></i></button>
@@ -173,21 +185,69 @@
             }).join('');
         }
 
-        // Lọc nhanh những món sắp hết hạn hoặc đã hết hạn
-        function filterSapHetHan() {
-            const today = new Date();
-            today.setHours(0,0,0,0);
+        // --- HÀM LỌC KẾT HỢP TÊN VÀ LOẠI ---
+        function filterData() {
+            const nameSearch = document.getElementById('searchInput').value.toLowerCase();
+            const loaiFilter = document.getElementById('filterLoai').value;
             
             const filtered = allData.filter(item => {
-                if (!item.hsd) return false;
-                const hsdDate = new Date(item.hsd);
-                const diffDays = Math.ceil((hsdDate - today) / (1000 * 60 * 60 * 24));
-                return diffDays <= 7; // Lấy đồ đã hết hạn và còn dưới 7 ngày
+                const matchesName = item.tenNS.toLowerCase().includes(nameSearch);
+                const matchesLoai = loaiFilter === "" || item.loai === loaiFilter;
+                return matchesName && matchesLoai;
             });
-            
             renderTable(filtered);
-            document.getElementById('status-message').innerHTML = `⚠️ Tìm thấy ${filtered.length} mặt hàng cần xử lý gấp! <button onclick="loadData()" style="font-size: 0.7rem; padding: 2px 5px;">Xem tất cả</button>`;
-            document.getElementById('status-message').className = "status error";
+        }
+
+        // --- HÀM SẮP XẾP TĂNG/GIẢM DẦN ---
+        function toggleSortID() {
+            const btn = document.getElementById('sortIDBtn');
+            if (sortOrder.maNS === 'asc') {
+                allData.sort((a, b) => b.maNS.localeCompare(a.maNS));
+                sortOrder.maNS = 'desc';
+                btn.innerHTML = '<i class="fas fa-sort-alpha-up"></i> Mã';
+            } else {
+                allData.sort((a, b) => a.maNS.localeCompare(b.maNS));
+                sortOrder.maNS = 'asc';
+                btn.innerHTML = '<i class="fas fa-sort-alpha-down"></i> Mã';
+            }
+            renderTable(allData);
+        }
+
+        function toggleSortPrice() {
+            const btn = document.getElementById('sortPriceBtn');
+            if (sortOrder.gia === 'asc') {
+                allData.sort((a, b) => b.gia - a.gia);
+                sortOrder.gia = 'desc';
+                btn.innerHTML = '<i class="fas fa-sort-numeric-up"></i> Giá';
+            } else {
+                allData.sort((a, b) => a.gia - b.gia);
+                sortOrder.gia = 'asc';
+                btn.innerHTML = '<i class="fas fa-sort-numeric-down"></i> Giá';
+            }
+            renderTable(allData);
+        }
+
+        async function deleteItem(id) {
+            if (confirm(`Xác nhận xóa nông sản ${id}?`)) {
+                try {
+                    const res = await fetch(`${apiBase}/delete/${id}`, { method: "DELETE" });
+                    if (res.ok) {
+                        alert("Xóa thành công!");
+                        loadData();
+                    } else {
+                        alert("Không thể xóa sản phẩm đang có dữ liệu nhập hàng hoặc vi phạm!");
+                    }
+                } catch (e) { alert("Lỗi kết nối!"); }
+            }
+        }
+
+        function filterSapHetHan() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const filtered = allData.filter(i => {
+                if (!i.hsd) return false;
+                return Math.ceil((new Date(i.hsd) - today) / (1000 * 60 * 60 * 24)) <= 7;
+            });
+            renderTable(filtered);
         }
 
         async function saveData() {
@@ -198,11 +258,10 @@
                 soLuong: parseInt(document.getElementById('soLuong').value),
                 gia: parseFloat(document.getElementById('gia').value),
                 xuatXu: document.getElementById('xuatXu').value,
-                hsd: document.getElementById('hsd').value // Lưu HSD
+                hsd: document.getElementById('hsd').value
             };
             const method = isEditMode ? "PUT" : "POST";
             const url = isEditMode ? `${apiBase}/update/${payload.maNS}` : `${apiBase}/add`;
-
             const res = await fetch(url, {
                 method: method,
                 headers: {"Content-Type": "application/json"},
@@ -222,7 +281,7 @@
                 document.getElementById('soLuong').value = item.soLuong;
                 document.getElementById('gia').value = item.gia;
                 document.getElementById('xuatXu').value = item.xuatXu;
-                document.getElementById('hsd').value = item.hsd; // Hiện HSD cũ
+                document.getElementById('hsd').value = item.hsd;
                 document.getElementById('crudModal').style.display = "flex";
             }
         }
@@ -233,24 +292,8 @@
             ['maNS', 'tenNS', 'soLuong', 'gia', 'xuatXu', 'hsd'].forEach(id => document.getElementById(id).value = "");
             document.getElementById('crudModal').style.display = "flex";
         }
-
         function closeModal() { document.getElementById('crudModal').style.display = "none"; }
         function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
-        
-        function filterData() {
-            const val = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allData.filter(i => i.tenNS.toLowerCase().includes(val));
-            renderTable(filtered);
-        }
-        
-        function toggleSortPrice() {
-            allData.sort((a, b) => a.gia - b.gia);
-            renderTable(allData);
-        }
-        function toggleSortID() {
-            allData.sort((a, b) => a.maNS.localeCompare(b.maNS));
-            renderTable(allData);
-        }
     </script>
 </body>
 </html>
