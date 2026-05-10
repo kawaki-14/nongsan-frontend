@@ -15,7 +15,7 @@
             border: 1px solid #334155 !important;
             border-left: 5px solid #10b981 !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            /* FIX SÁT CHỮ: Tăng padding-left lên 30px */
+            /* FIX SÁT CHỮ: Padding rộng rãi cho thoáng */
             padding: 18px 30px !important; 
             display: flex;
             flex-direction: column;
@@ -30,7 +30,7 @@
             margin: 0 0 8px 0;
             display: flex;
             align-items: center;
-            gap: 8px; /* Khoảng cách giữa icon và chữ tiêu đề */
+            gap: 8px;
         }
         
         .stat-card p { 
@@ -38,16 +38,15 @@
             color: #10b981 !important; 
             font-weight: 800; 
             margin: 0;
-            padding-left: 2px; /* Đẩy nhẹ con số sang phải cho thẳng hàng với tiêu đề */
         }
 
-        /* FIX LỖI NÚT BẤM */
         .control-panel {
             display: flex;
             gap: 15px;
             margin-bottom: 25px;
         }
 
+        /* NÚT BẤM HIỆN ĐẠI */
         .btn-custom {
             height: 45px;
             padding: 0 25px;
@@ -60,15 +59,14 @@
             gap: 10px;
             border: none;
             transition: all 0.2s;
-            white-space: nowrap; /* Giữ chữ trên 1 dòng */
+            white-space: nowrap;
+            color: white !important;
         }
 
-        .btn-refresh { background: #10b981; color: white; }
-        .btn-report { background: #e11d48; color: white; }
+        .btn-refresh { background: #10b981; }
+        .btn-report { background: #e11d48; }
         .btn-custom:hover { opacity: 0.9; transform: translateY(-2px); }
-        .btn-custom i { font-size: 1.1rem; }
 
-        /* Các thành phần khác */
         .advanced-filter {
             background: #1e293b !important;
             border: 1px solid #334155;
@@ -78,8 +76,19 @@
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 25px;
+            color: #f8fafc;
         }
 
+        .filter-group label { color: #94a3b8 !important; font-size: 0.8rem; margin-bottom: 5px; }
+        .filter-group input, .filter-group select {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #475569 !important;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        /* TAG MỨC ĐỘ */
         .bg-red { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; }
         .bg-orange { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; border: 1px solid rgba(245, 158, 11, 0.3) !important; }
         .bg-green { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.3) !important; }
@@ -107,7 +116,7 @@
             <header>
                 <div class="header-main">
                     <h1>QUẢN LÝ VI PHẠM</h1>
-                    <p style="color: #94a3b8;">Giám sát và báo cáo sai phạm hệ thống</p>
+                    <p style="color: #94a3b8;">Giám sát chất lượng và báo cáo sai phạm</p>
                 </div>
                 <div class="user-info-bar">
                     <div class="user-details">
@@ -191,6 +200,7 @@
             <div class="form-group">
                 <label>Mã Vụ:</label><input type="text" id="maVVP">
                 <label>Tên Vụ Vi Phạm:</label><input type="text" id="tenVVP">
+                <label>Sản phẩm vi phạm (Mã NS):</label><input type="text" id="maNS" placeholder="Ví dụ: NS01">
                 <label>Ngày Xảy Ra:</label><input type="date" id="ngayXayRa">
                 <label>Mức Độ:</label>
                 <select id="mucDo">
@@ -211,6 +221,7 @@
     <script>
         const apiBase = "https://demo-xo8t.onrender.com/api/vuvipham";
         let allVVP = [];
+        let isEditMode = false;
 
         window.onload = function() {
             if (currentUser) {
@@ -222,6 +233,7 @@
 
         async function loadData() {
             try {
+                // Sử dụng endpoint summary để lấy dữ liệu JOIN
                 const res = await fetch(`${apiBase}/summary`); 
                 allVVP = await res.json();
                 renderTable(allVVP);
@@ -240,7 +252,7 @@
                         <td><span class="badge badge-dark">${v.maVVP}</span></td>
                         <td>
                             <div class="font-bold">${v.tenVVP}</div>
-                            <div style="color: #94a3b8; font-size: 0.8rem">Sản phẩm: ${v.tenNS || '---'}</div>
+                            <div style="color: #94a3b8; font-size: 0.8rem">Sản phẩm: ${v.tenNS || v.maNS || '---'}</div>
                         </td>
                         <td>${v.ngayXayRa}</td>
                         <td><span class="type-tag ${mudoClass}">${v.mucDo || 'Nhẹ'}</span></td>
@@ -294,26 +306,39 @@
                 tenVVP: document.getElementById('tenVVP').value,
                 ngayXayRa: document.getElementById('ngayXayRa').value,
                 mucDo: document.getElementById('mucDo').value,
-                hinhThucXuLy: document.getElementById('hinhThucXuLy').value
+                hinhThucXuLy: document.getElementById('hinhThucXuLy').value,
+                maNS: document.getElementById('maNS').value // ĐÃ THÊM maNS VÀO PAYLOAD
             };
-            const method = isEditMode ? "PUT" : "POST"; // Nhớ khai báo biến isEditMode
+            
+            const method = isEditMode ? "PUT" : "POST";
             const url = isEditMode ? `${apiBase}/update/${payload.maVVP}` : `${apiBase}/add`;
-            const res = await fetch(url, {
-                method: method,
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload)
-            });
-            if(res.ok) { closeModal(); loadData(); }
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) { 
+                    closeModal(); 
+                    loadData(); 
+                } else {
+                    alert("Lỗi khi lưu dữ liệu. Kiểm tra lại mã sản phẩm!");
+                }
+            } catch (e) {
+                alert("Lỗi kết nối server!");
+            }
         }
 
-        let isEditMode = false;
         function editVVP(id) {
             const v = allVVP.find(x => x.maVVP === id);
             if(v) {
                 isEditMode = true;
+                document.getElementById('modalTitle').innerText = "Cập Nhật Sai Phạm";
                 document.getElementById('maVVP').value = v.maVVP;
                 document.getElementById('maVVP').disabled = true;
                 document.getElementById('tenVVP').value = v.tenVVP;
+                document.getElementById('maNS').value = v.maNS || ""; // HIỆN maNS
                 document.getElementById('ngayXayRa').value = v.ngayXayRa;
                 document.getElementById('mucDo').value = v.mucDo || "Nhẹ";
                 document.getElementById('hinhThucXuLy').value = v.hinhThucXuLy;
@@ -330,10 +355,14 @@
 
         function openModal() {
             isEditMode = false;
+            document.getElementById('modalTitle').innerText = "Tạo Báo Cáo Mới";
             document.getElementById('maVVP').disabled = false;
-            ['maVVP', 'tenVVP', 'ngayXayRa', 'hinhThucXuLy'].forEach(id => document.getElementById(id).value = "");
+            ['maVVP', 'tenVVP', 'maNS', 'ngayXayRa', 'hinhThucXuLy'].forEach(id => {
+                document.getElementById(id).value = "";
+            });
             document.getElementById('vvpModal').style.display = "flex";
         }
+
         function closeModal() { document.getElementById('vvpModal').style.display = "none"; }
         function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
     </script>
