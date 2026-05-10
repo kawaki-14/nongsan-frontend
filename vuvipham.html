@@ -7,69 +7,83 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* --- GIAO DIỆN DARK DASHBOARD MỚI --- */
+        /* --- DARK THEME & LAYOUT FIX --- */
         
-        /* Ô Thống kê màu tối, viền Emerald */
         .stat-card {
             background: #1e293b !important;
             color: #f8fafc !important;
             border: 1px solid #334155 !important;
             border-left: 5px solid #10b981 !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s;
+            /* FIX SÁT CHỮ: Tăng padding-left lên 30px */
+            padding: 18px 30px !important; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100px;
         }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-card h3 { color: #94a3b8 !important; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-card p { font-size: 1.6rem !important; color: #10b981 !important; font-weight: 800; margin-top: 8px; }
+        
+        .stat-card h3 { 
+            color: #94a3b8 !important; 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            margin: 0 0 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Khoảng cách giữa icon và chữ tiêu đề */
+        }
+        
+        .stat-card p { 
+            font-size: 1.6rem !important; 
+            color: #10b981 !important; 
+            font-weight: 800; 
+            margin: 0;
+            padding-left: 2px; /* Đẩy nhẹ con số sang phải cho thẳng hàng với tiêu đề */
+        }
 
-        /* Bộ lọc nâng cao tông màu Navy */
+        /* FIX LỖI NÚT BẤM */
+        .control-panel {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .btn-custom {
+            height: 45px;
+            padding: 0 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: none;
+            transition: all 0.2s;
+            white-space: nowrap; /* Giữ chữ trên 1 dòng */
+        }
+
+        .btn-refresh { background: #10b981; color: white; }
+        .btn-report { background: #e11d48; color: white; }
+        .btn-custom:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn-custom i { font-size: 1.1rem; }
+
+        /* Các thành phần khác */
         .advanced-filter {
             background: #1e293b !important;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
             border: 1px solid #334155;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-        }
-        .filter-group label { color: #94a3b8 !important; font-size: 0.8rem; margin-bottom: 8px; display: block; }
-        .filter-group input, .filter-group select {
-            background: #0f172a !important;
-            color: #f1f5f9 !important;
-            border: 1px solid #475569 !important;
-            padding: 10px;
-            border-radius: 6px;
-            outline: none;
-        }
-        .filter-group input:focus { border-color: #10b981; }
-
-        /* Tag mức độ vi phạm kiểu Glassmorphism */
-        .bg-red { 
-            background-color: rgba(239, 68, 68, 0.15) !important; 
-            color: #f87171 !important; 
-            border: 1px solid rgba(239, 68, 68, 0.3) !important; 
-        }
-        .bg-orange { 
-            background-color: rgba(245, 158, 11, 0.15) !important; 
-            color: #fbbf24 !important; 
-            border: 1px solid rgba(245, 158, 11, 0.3) !important; 
-        }
-        .bg-green { 
-            background-color: rgba(16, 185, 129, 0.15) !important; 
-            color: #34d399 !important; 
-            border: 1px solid rgba(16, 185, 129, 0.3) !important; 
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
         }
 
-        /* Badge mã vụ */
-        .badge-dark {
-            background: #334155 !important;
-            color: #cbd5e1 !important;
-            border: 1px solid #475569;
-            font-family: monospace;
-        }
-
-        .text-sub { color: #94a3b8; font-size: 0.85rem; }
+        .bg-red { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; }
+        .bg-orange { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; border: 1px solid rgba(245, 158, 11, 0.3) !important; }
+        .bg-green { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.3) !important; }
+        .badge-dark { background: #334155 !important; color: #cbd5e1 !important; border: 1px solid #475569; }
     </style>
 </head>
 <body>
@@ -93,7 +107,7 @@
             <header>
                 <div class="header-main">
                     <h1>QUẢN LÝ VI PHẠM</h1>
-                    <p style="color: #94a3b8;">Giám sát chất lượng và xử lý sai phạm hệ thống</p>
+                    <p style="color: #94a3b8;">Giám sát và báo cáo sai phạm hệ thống</p>
                 </div>
                 <div class="user-info-bar">
                     <div class="user-details">
@@ -110,7 +124,7 @@
                     <p id="stat-total">0</p>
                 </div>
                 <div class="stat-card" style="border-left-color: #f59e0b !important;">
-                    <h3><i class="fas fa-map-marker-alt"></i> Điểm nóng</h3>
+                    <h3><i class="fas fa-map-marker-alt"></i> Khu vực điểm nóng</h3>
                     <p id="stat-top-region">---</p>
                 </div>
                 <div class="stat-card" style="border-left-color: #3b82f6 !important;">
@@ -130,8 +144,8 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>Khu vực/Xuất xứ:</label>
-                    <input type="text" id="filterKhuVuc" placeholder="Ví dụ: Đà Lạt..." onkeyup="applyFilters()">
+                    <label>Khu vực:</label>
+                    <input type="text" id="filterKhuVuc" placeholder="Đà Lạt, Gia Lai..." onkeyup="applyFilters()">
                 </div>
                 <div class="filter-group">
                     <label>Từ ngày:</label>
@@ -144,8 +158,10 @@
             </div>
 
             <div class="control-panel">
-                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Làm mới</button>
-                <button class="btn-tool btn-add" style="background: #10b981;" onclick="openModal()">
+                <button class="btn-custom btn-refresh" onclick="loadData()">
+                    <i class="fas fa-sync-alt"></i> Làm mới dữ liệu
+                </button>
+                <button class="btn-custom btn-report" onclick="openModal()">
                     <i class="fas fa-plus-circle"></i> Tạo Báo Cáo
                 </button>
             </div>
@@ -195,7 +211,6 @@
     <script>
         const apiBase = "https://demo-xo8t.onrender.com/api/vuvipham";
         let allVVP = [];
-        let isEdit = false;
 
         window.onload = function() {
             if (currentUser) {
@@ -225,7 +240,7 @@
                         <td><span class="badge badge-dark">${v.maVVP}</span></td>
                         <td>
                             <div class="font-bold">${v.tenVVP}</div>
-                            <div class="text-sub">Sản phẩm: ${v.tenNS || '---'}</div>
+                            <div style="color: #94a3b8; font-size: 0.8rem">Sản phẩm: ${v.tenNS || '---'}</div>
                         </td>
                         <td>${v.ngayXayRa}</td>
                         <td><span class="type-tag ${mudoClass}">${v.mucDo || 'Nhẹ'}</span></td>
@@ -281,8 +296,8 @@
                 mucDo: document.getElementById('mucDo').value,
                 hinhThucXuLy: document.getElementById('hinhThucXuLy').value
             };
-            const method = isEdit ? "PUT" : "POST";
-            const url = isEdit ? `${apiBase}/update/${payload.maVVP}` : `${apiBase}/add`;
+            const method = isEditMode ? "PUT" : "POST"; // Nhớ khai báo biến isEditMode
+            const url = isEditMode ? `${apiBase}/update/${payload.maVVP}` : `${apiBase}/add`;
             const res = await fetch(url, {
                 method: method,
                 headers: {"Content-Type": "application/json"},
@@ -291,10 +306,11 @@
             if(res.ok) { closeModal(); loadData(); }
         }
 
+        let isEditMode = false;
         function editVVP(id) {
             const v = allVVP.find(x => x.maVVP === id);
             if(v) {
-                isEdit = true;
+                isEditMode = true;
                 document.getElementById('maVVP').value = v.maVVP;
                 document.getElementById('maVVP').disabled = true;
                 document.getElementById('tenVVP').value = v.tenVVP;
@@ -313,7 +329,7 @@
         }
 
         function openModal() {
-            isEdit = false;
+            isEditMode = false;
             document.getElementById('maVVP').disabled = false;
             ['maVVP', 'tenVVP', 'ngayXayRa', 'hinhThucXuLy'].forEach(id => document.getElementById(id).value = "");
             document.getElementById('vvpModal').style.display = "flex";
