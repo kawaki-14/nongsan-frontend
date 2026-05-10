@@ -1,63 +1,263 @@
-<div class="search-box">
-    <div class="input-group">
-        <label>Tra cứu theo Nông Sản:</label>
-        <select id="selectNongSan" onchange="loadHistoryByNS()">
-            <option value="">-- Chọn nông sản để xem lịch sử --</option>
-        </select>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGRI-ADMIN - Quản Lý Kiểm Định</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- DARK THEME & LAYOUT --- */
+        .stat-card {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+            border-left: 5px solid #3b82f6 !important; /* Màu xanh dương cho Kiểm định */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            padding: 18px 30px !important; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100px;
+        }
+        .stat-card h3 { color: #94a3b8 !important; font-size: 0.75rem; text-transform: uppercase; margin: 0 0 8px 0; }
+        .stat-card p { font-size: 1.6rem !important; color: #3b82f6 !important; font-weight: 800; margin: 0; }
+
+        .advanced-filter {
+            background: #1e293b !important;
+            border: 1px solid #334155;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            color: #f1f5f9;
+        }
+
+        /* TAG KẾT QUẢ */
+        .bg-green { background: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.3) !important; }
+        .bg-red { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; }
+
+        .btn-custom {
+            height: 45px; padding: 0 25px; border-radius: 8px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 10px; border: none; cursor: pointer; color: white !important;
+        }
+        .btn-blue { background: #3b82f6; }
+        .btn-blue:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <script>
+        const userStr = localStorage.getItem('user');
+        if (!userStr) window.location.href = 'login.html';
+        const currentUser = JSON.parse(userStr);
+    </script>
+
+    <div class="app-container">
+        <nav class="side-nav">
+            <div class="nav-logo"><i class="fas fa-seedling"></i><span>AGRI-ADMIN</span></div>
+            <a href="index.html"><i class="fas fa-leaf"></i> Nông Sản</a>
+            <a href="nhacungcap.html"><i class="fas fa-truck"></i> Nhà Cung Cấp</a>
+            <a href="cungcap.html"><i class="fas fa-clipboard-list"></i> Nhập Hàng</a>
+            <a href="kiemdinh.html" class="active"><i class="fas fa-check-double"></i> Kiểm Định</a>
+            <a href="nhanvien.html"><i class="fas fa-users"></i> Nhân Viên</a>
+            <a href="vuvipham.html"><i class="fas fa-exclamation-triangle"></i> Vi Phạm</a>
+        </nav>
+
+        <main>
+            <header>
+                <div class="header-main">
+                    <h1>LỊCH SỬ KIỂM ĐỊNH</h1>
+                    <p style="color: #94a3b8;">Theo dõi tiêu chuẩn chất lượng nông sản</p>
+                </div>
+                <div class="user-info-bar">
+                    <div class="user-details">
+                        <span class="user-name" id="display-name">---</span>
+                        <span class="user-role" id="display-role">---</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
+                </div>
+            </header>
+
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3><i class="fas fa-microscope"></i> Tổng lượt kiểm định</h3>
+                    <p id="stat-total-kd">0</p>
+                </div>
+                <div class="stat-card" style="border-left-color: #10b981 !important;">
+                    <h3><i class="fas fa-check-circle"></i> Tỷ lệ đạt chuẩn</h3>
+                    <p id="stat-pass-rate">0%</p>
+                </div>
+            </div>
+
+            <div class="advanced-filter">
+                <div class="filter-group" style="width: 100%;">
+                    <label><i class="fas fa-search"></i> Chọn Nông Sản để xem lịch sử:</label>
+                    <select id="selectNongSan" onchange="loadHistoryByNS()" style="width: 100%; margin-top: 10px;">
+                        <option value="">-- Tất cả nông sản --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <button class="btn-custom btn-blue" onclick="openModal()">
+                    <i class="fas fa-plus-circle"></i> Ghi Nhận Kết Quả Mới
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã KD</th>
+                            <th>Cơ Quan Kiểm Định</th>
+                            <th>Ngày Kiểm</th>
+                            <th>Kết Quả</th>
+                            <th>Ghi Chú</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kd-content"></tbody>
+                </table>
+            </div>
+        </main>
     </div>
-</div>
 
-<div class="table-wrapper">
-    <table>
-        <thead>
-            <tr>
-                <th>Mã KD</th>
-                <th>Cơ quan kiểm định</th>
-                <th>Ngày thực hiện</th>
-                <th>Kết quả</th>
-                <th>Ghi chú</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody id="kd-history-content"></tbody>
-    </table>
-</div>
+    <div id="kdModal" class="modal">
+        <div class="modal-content" style="background: #1e293b; color: white;">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Ghi Nhận Kiểm Định</h2>
+            <div class="form-group">
+                <label>Mã Kiểm Định:</label><input type="text" id="maKD" placeholder="KDxx">
+                <label>Chọn Nông Sản:</label>
+                <select id="modalMaNS"></select>
+                <label>Cơ Quan Thực Hiện:</label><input type="text" id="coQuanKD">
+                <label>Ngày Kiểm Định:</label><input type="date" id="ngayKD">
+                <label>Kết Quả:</label>
+                <select id="ketQua">
+                    <option value="Đạt">Đạt</option>
+                    <option value="Không đạt">Không đạt</option>
+                </select>
+                <label>Ghi Chú:</label>
+                <textarea id="ghiChu" rows="2" style="background: #0f172a; color: white; border: 1px solid #475569;"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-blue" onclick="saveData()" style="padding: 10px 20px; border-radius: 5px; border:none; cursor:pointer;">Lưu kết quả</button>
+                <button onclick="closeModal()" style="background: #475569; padding: 10px 20px; border-radius: 5px; color:white; border:none; cursor:pointer;">Hủy</button>
+            </div>
+        </div>
+    </div>
 
-<script>
-    // Hàm nạp danh sách nông sản vào dropdown
-    async function fetchNongSanList() {
-        const res = await fetch("https://demo-xo8t.onrender.com/api/nongsan/all");
-        const list = await res.json();
-        const select = document.getElementById('selectNongSan');
-        list.forEach(ns => {
-            select.innerHTML += `<option value="${ns.maNS}">${ns.tenNS} (${ns.maNS})</option>`;
-        });
-    }
+    <script>
+        const apiBase = "https://demo-xo8t.onrender.com/api";
+        let allKD = [];
+        let isEdit = false;
 
-    // Hàm nạp lịch sử theo mã nông sản
-    async function loadHistoryByNS() {
-        const maNS = document.getElementById('selectNongSan').value;
-        if(!maNS) return;
-        
-        const res = await fetch(`https://demo-xo8t.onrender.com/api/kiemdinh/nong-san/${maNS}`);
-        const data = await res.json();
-        
-        const tbody = document.getElementById('kd-history-content');
-        tbody.innerHTML = data.map(kd => `
-            <tr>
-                <td><span class="badge">${kd.maKD}</span></td>
-                <td>${kd.coQuanKD}</td>
-                <td>${kd.ngayKiemDinh}</td>
-                <td>
-                    <span class="type-tag ${kd.ketQua === 'Đạt' ? 'bg-green' : 'bg-red'}">
-                        ${kd.ketQua}
-                    </span>
-                </td>
-                <td>${kd.ghiChu}</td>
-                <td>
-                    <button class="action-btn edit" onclick="openEditModal('${kd.maKD}')"><i class="fas fa-edit"></i></button>
-                </td>
-            </tr>
-        `).join('');
-    }
-</script>
+        window.onload = function() {
+            if (currentUser) {
+                document.getElementById('display-name').innerText = currentUser.hoTen;
+                document.getElementById('display-role').innerText = currentUser.chucVu;
+            }
+            fetchNongSanList();
+            loadAllKD();
+        };
+
+        // Nạp danh sách nông sản vào 2 cái dropdown
+        async function fetchNongSanList() {
+            try {
+                const res = await fetch(`${apiBase}/nongsan/all`);
+                const list = await res.json();
+                const selectFilter = document.getElementById('selectNongSan');
+                const selectModal = document.getElementById('modalMaNS');
+                
+                list.forEach(ns => {
+                    const opt = `<option value="${ns.maNS}">${ns.tenNS} (${ns.maNS})</option>`;
+                    selectFilter.innerHTML += opt;
+                    selectModal.innerHTML += opt;
+                });
+            } catch (e) { console.error("Lỗi nạp danh sách NS"); }
+        }
+
+        async function loadAllKD() {
+            try {
+                const res = await fetch(`${apiBase}/kiemdinh/all`);
+                allKD = await res.json();
+                renderTable(allKD);
+                updateStats(allKD);
+            } catch (e) { console.error("Lỗi nạp dữ liệu KD"); }
+        }
+
+        async function loadHistoryByNS() {
+            const maNS = document.getElementById('selectNongSan').value;
+            if(!maNS) return loadAllKD();
+            
+            const res = await fetch(`${apiBase}/kiemdinh/nong-san/${maNS}`);
+            const data = await res.json();
+            renderTable(data);
+        }
+
+        function renderTable(data) {
+            document.getElementById('kd-content').innerHTML = data.map(k => `
+                <tr>
+                    <td><span class="badge badge-dark">${k.maKD}</span></td>
+                    <td><b>${k.coQuanKD}</b></td>
+                    <td>${k.ngayKiemDinh}</td>
+                    <td><span class="type-tag ${k.ketQua === 'Đạt' ? 'bg-green' : 'bg-red'}">${k.ketQua}</span></td>
+                    <td>${k.ghiChu || '---'}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="editKD('${k.maKD}')"><i class="fas fa-edit"></i></button>
+                    </td>
+                </tr>`).join('');
+        }
+
+        function updateStats(data) {
+            document.getElementById('stat-total-kd').innerText = data.length;
+            const passCount = data.filter(k => k.ketQua === 'Đạt').length;
+            const rate = data.length > 0 ? Math.round((passCount / data.length) * 100) : 0;
+            document.getElementById('stat-pass-rate').innerText = rate + "%";
+        }
+
+        async function saveData() {
+            const payload = {
+                maKD: document.getElementById('maKD').value,
+                maNS: document.getElementById('modalMaNS').value,
+                coQuanKD: document.getElementById('coQuanKD').value,
+                ngayKiemDinh: document.getElementById('ngayKD').value,
+                ketQua: document.getElementById('ketQua').value,
+                ghiChu: document.getElementById('ghiChu').value
+            };
+            const method = isEdit ? "PUT" : "POST";
+            const url = isEdit ? `${apiBase}/kiemdinh/update/${payload.maKD}` : `${apiBase}/kiemdinh/add`;
+            
+            const res = await fetch(url, {
+                method: method,
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) { closeModal(); loadAllKD(); }
+        }
+
+        function editKD(id) {
+            const k = allKD.find(x => x.maKD === id);
+            if(k) {
+                isEdit = true;
+                document.getElementById('maKD').value = k.maKD;
+                document.getElementById('maKD').disabled = true;
+                document.getElementById('modalMaNS').value = k.maNS;
+                document.getElementById('coQuanKD').value = k.coQuanKD;
+                document.getElementById('ngayKD').value = k.ngayKiemDinh;
+                document.getElementById('ketQua').value = k.ketQua;
+                document.getElementById('ghiChu').value = k.ghiChu;
+                document.getElementById('kdModal').style.display = "flex";
+            }
+        }
+
+        function openModal() {
+            isEdit = false;
+            document.getElementById('maKD').disabled = false;
+            ['maKD', 'coQuanKD', 'ngayKD', 'ghiChu'].forEach(id => document.getElementById(id).value = "");
+            document.getElementById('kdModal').style.display = "flex";
+        }
+        function closeModal() { document.getElementById('kdModal').style.display = "none"; }
+        function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
