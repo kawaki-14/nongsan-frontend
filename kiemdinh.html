@@ -1,0 +1,63 @@
+<div class="search-box">
+    <div class="input-group">
+        <label>Tra cứu theo Nông Sản:</label>
+        <select id="selectNongSan" onchange="loadHistoryByNS()">
+            <option value="">-- Chọn nông sản để xem lịch sử --</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Mã KD</th>
+                <th>Cơ quan kiểm định</th>
+                <th>Ngày thực hiện</th>
+                <th>Kết quả</th>
+                <th>Ghi chú</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody id="kd-history-content"></tbody>
+    </table>
+</div>
+
+<script>
+    // Hàm nạp danh sách nông sản vào dropdown
+    async function fetchNongSanList() {
+        const res = await fetch("https://demo-xo8t.onrender.com/api/nongsan/all");
+        const list = await res.json();
+        const select = document.getElementById('selectNongSan');
+        list.forEach(ns => {
+            select.innerHTML += `<option value="${ns.maNS}">${ns.tenNS} (${ns.maNS})</option>`;
+        });
+    }
+
+    // Hàm nạp lịch sử theo mã nông sản
+    async function loadHistoryByNS() {
+        const maNS = document.getElementById('selectNongSan').value;
+        if(!maNS) return;
+        
+        const res = await fetch(`https://demo-xo8t.onrender.com/api/kiemdinh/nong-san/${maNS}`);
+        const data = await res.json();
+        
+        const tbody = document.getElementById('kd-history-content');
+        tbody.innerHTML = data.map(kd => `
+            <tr>
+                <td><span class="badge">${kd.maKD}</span></td>
+                <td>${kd.coQuanKD}</td>
+                <td>${kd.ngayKiemDinh}</td>
+                <td>
+                    <span class="type-tag ${kd.ketQua === 'Đạt' ? 'bg-green' : 'bg-red'}">
+                        ${kd.ketQua}
+                    </span>
+                </td>
+                <td>${kd.ghiChu}</td>
+                <td>
+                    <button class="action-btn edit" onclick="openEditModal('${kd.maKD}')"><i class="fas fa-edit"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+</script>
