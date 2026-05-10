@@ -6,6 +6,41 @@
     <title>AGRI-ADMIN - Quản Lý Vi Phạm</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* CSS bổ sung cho bộ lọc và thống kê */
+        .advanced-filter {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 0.85rem; font-weight: bold; color: #64748b; }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #e11d48;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-card h3 { font-size: 0.9rem; color: #64748b; margin: 0; }
+        .stat-card p { font-size: 1.1rem; font-weight: bold; margin: 5px 0 0 0; color: #1e293b; }
+
+        .bg-red { background-color: #fee2e2 !important; color: #b91c1c !important; }
+        .bg-orange { background-color: #fef3c7 !important; color: #92400e !important; }
+        .bg-green { background-color: #dcfce7 !important; color: #166534 !important; }
+    </style>
 </head>
 <body>
     <script>
@@ -28,7 +63,7 @@
             <header>
                 <div class="header-main">
                     <h1>QUẢN LÝ VI PHẠM</h1>
-                    <p style="color: #f87171;">Theo dõi sai phạm và hàng giả, hàng nhái</p>
+                    <p style="color: #f87171;">Tra cứu sai phạm và thống kê dữ liệu thực</p>
                 </div>
                 <div class="user-info-bar">
                     <div class="user-details">
@@ -39,18 +74,50 @@
                 </div>
             </header>
 
-            <div class="control-panel">
-                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Tải lại</button>
-                <button class="btn-tool btn-add" style="background: #e11d48;" onclick="openModal()">
-                    <i class="fas fa-plus-circle"></i> Báo Cáo Vi Phạm Mới
-                </button>
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3><i class="fas fa-file-invoice"></i> Tổng số vụ</h3>
+                    <p id="stat-total">0</p>
+                </div>
+                <div class="stat-card" style="border-left-color: #f59e0b;">
+                    <h3><i class="fas fa-map-marked-alt"></i> Khu vực nóng nhất</h3>
+                    <p id="stat-top-region">---</p>
+                </div>
+                <div class="stat-card" style="border-left-color: #10b981;">
+                    <h3><i class="fas fa-calendar-check"></i> Tháng cao điểm</h3>
+                    <p id="stat-top-month">---</p>
+                </div>
             </div>
 
-            <div class="search-box">
-                <div class="input-group">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Tìm tên vụ vi phạm..." onkeyup="filterData()">
+            <div class="advanced-filter">
+                <div class="filter-group">
+                    <label>Mức độ vi phạm:</label>
+                    <select id="filterMucDo" onchange="applyFilters()">
+                        <option value="">Tất cả mức độ</option>
+                        <option value="Nhẹ">Nhẹ</option>
+                        <option value="Trung bình">Trung bình</option>
+                        <option value="Nghiêm trọng">Nghiêm trọng</option>
+                    </select>
                 </div>
+                <div class="filter-group">
+                    <label>Khu vực/Xuất xứ:</label>
+                    <input type="text" id="filterKhuVuc" placeholder="Ví dụ: Đà Lạt..." onkeyup="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Từ ngày:</label>
+                    <input type="date" id="filterStart" onchange="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Đến ngày:</label>
+                    <input type="date" id="filterEnd" onchange="applyFilters()">
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <button onclick="loadData()"><i class="fas fa-sync-alt"></i> Làm mới dữ liệu</button>
+                <button class="btn-tool btn-add" style="background: #e11d48;" onclick="openModal()">
+                    <i class="fas fa-plus-circle"></i> Tạo Báo Cáo
+                </button>
             </div>
 
             <div class="table-wrapper">
@@ -58,10 +125,11 @@
                     <thead>
                         <tr>
                             <th>Mã Vụ</th>
-                            <th>Tên Vụ Vi Phạm</th>
+                            <th>Nội dung & Sản phẩm</th>
                             <th>Ngày Xảy Ra</th>
-                            <th>Hình Thức Xử Lý</th>
-                            <th style="width: 120px;">Thao tác</th>
+                            <th>Mức độ</th>
+                            <th>Khu vực</th>
+                            <th style="width: 100px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="vvp-content"></tbody>
@@ -73,78 +141,133 @@
     <div id="vvpModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal()">&times;</span>
-            <h2 id="modalTitle">Chi Tiết Vụ Vi Phạm</h2>
+            <h2 id="modalTitle">Báo Cáo Vi Phạm</h2>
             <div class="form-group">
-                <label>Mã Vụ Vi Phạm:</label>
-                <input type="text" id="maVVP" placeholder="Ví dụ: VP01">
-                <label>Tên Vụ Vi Phạm (Hàng giả, quá hạn...):</label>
-                <input type="text" id="tenVVP" placeholder="Nhập nội dung sai phạm">
-                <label>Ngày Xảy Ra:</label>
-                <input type="date" id="ngayXayRa">
+                <label>Mã Vụ:</label><input type="text" id="maVVP">
+                <label>Tên Vụ Vi Phạm:</label><input type="text" id="tenVVP">
+                <label>Ngày Xảy Ra:</label><input type="date" id="ngayXayRa">
+                <label>Mức Độ:</label>
+                <select id="mucDo">
+                    <option value="Nhẹ">Nhẹ</option>
+                    <option value="Trung bình">Trung bình</option>
+                    <option value="Nghiêm trọng">Nghiêm trọng</option>
+                </select>
                 <label>Hình Thức Xử Lý:</label>
-                <textarea id="hinhThucXuLy" rows="3" placeholder="Ví dụ: Phạt 50tr, tiêu hủy hàng"></textarea>
+                <textarea id="hinhThucXuLy" rows="2"></textarea>
             </div>
             <div class="modal-actions">
-                <button style="background: #e11d48;" onclick="saveData()">Lưu báo cáo</button>
-                <button onclick="closeModal()" style="background: #475569;">Hủy</button>
+                <button style="background: #e11d48;" onclick="saveData()">Lưu dữ liệu</button>
+                <button onclick="closeModal()" style="background: #475569;">Đóng</button>
             </div>
         </div>
     </div>
 
     <script>
+        // LƯU Ý: Dùng endpoint /summary đã JOIN 3 bảng để có đủ thông tin mức độ/khu vực
         const apiBase = "https://demo-xo8t.onrender.com/api/vuvipham";
         let allVVP = [];
         let isEdit = false;
 
         window.onload = function() {
-            const nameEl = document.getElementById('display-name');
-            const roleEl = document.getElementById('display-role');
-            if (currentUser && nameEl && roleEl) {
-                nameEl.innerText = currentUser.hoTen;
-                roleEl.innerText = currentUser.chucVu;
+            if (currentUser) {
+                document.getElementById('display-name').innerText = currentUser.hoTen;
+                document.getElementById('display-role').innerText = currentUser.chucVu;
             }
             loadData();
         };
 
         async function loadData() {
             try {
-                const res = await fetch(`${apiBase}/all`);
+                // Gọi API lấy dữ liệu tổng hợp (Nếu bro chưa làm endpoint /summary, dùng tạm /all)
+                const res = await fetch(`${apiBase}/all`); 
                 allVVP = await res.json();
                 renderTable(allVVP);
+                updateStats(allVVP);
             } catch (e) { console.error("Lỗi server"); }
         }
 
         function renderTable(data) {
-            document.getElementById('vvp-content').innerHTML = data.map(v => `
-                <tr>
-                    <td><span class="badge" style="background: #fee2e2; color: #991b1b;">${v.maVVP}</span></td>
-                    <td class="font-bold">${v.tenVVP}</td>
-                    <td>${v.ngayXayRa}</td>
-                    <td style="color: #b91c1c;">${v.hinhThucXuLy}</td>
-                    <td>
-                        <button class="action-btn edit" onclick="editVVP('${v.maVVP}')"><i class="fas fa-edit"></i></button>
-                        <button class="action-btn delete" onclick="deleteVVP('${v.maVVP}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`).join('');
+            document.getElementById('vvp-content').innerHTML = data.map(v => {
+                // Logic màu sắc mức độ
+                let mudoClass = "bg-green";
+                if(v.mucDo === "Nghiêm trọng") mudoClass = "bg-red";
+                if(v.mucDo === "Trung bình") mudoClass = "bg-orange";
+
+                return `
+                    <tr>
+                        <td><span class="badge" style="background: #f1f5f9; color: #475569;">${v.maVVP}</span></td>
+                        <td>
+                            <div class="font-bold">${v.tenVVP}</div>
+                            <small style="color: #64748b">SP: ${v.tenNS || 'Hàng trôi nổi'}</small>
+                        </td>
+                        <td>${v.ngayXayRa}</td>
+                        <td><span class="type-tag ${mudoClass}">${v.mucDo || 'Nhẹ'}</span></td>
+                        <td><i class="fas fa-map-pin" style="color: #94a3b8"></i> ${v.xuatXu || 'Chưa rõ'}</td>
+                        <td>
+                            <button class="action-btn edit" onclick="editVVP('${v.maVVP}')"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn delete" onclick="deleteVVP('${v.maVVP}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            }).join('');
         }
 
+        // --- HÀM LỌC ĐA NĂNG ---
+        function applyFilters() {
+            const mucDo = document.getElementById('filterMucDo').value;
+            const khuVuc = document.getElementById('filterKhuVuc').value.toLowerCase();
+            const start = document.getElementById('filterStart').value;
+            const end = document.getElementById('filterEnd').value;
+
+            const filtered = allVVP.filter(v => {
+                const matchMucDo = mucDo === "" || v.mucDo === mucDo;
+                const matchKhuVuc = (v.xuatXu || "").toLowerCase().includes(khuVuc);
+                const matchTime = (!start || v.ngayXayRa >= start) && (!end || v.ngayXayRa <= end);
+                return matchMucDo && matchKhuVuc && matchTime;
+            });
+
+            renderTable(filtered);
+            updateStats(filtered);
+        }
+
+        // --- HÀM THỐNG KÊ ---
+        function updateStats(data) {
+            document.getElementById('stat-total').innerText = data.length;
+
+            // Đếm khu vực vi phạm nhiều nhất
+            const regionCounts = {};
+            data.forEach(v => { if(v.xuatXu) regionCounts[v.xuatXu] = (regionCounts[v.xuatXu] || 0) + 1; });
+            let topRegion = Object.keys(regionCounts).reduce((a, b) => regionCounts[a] > regionCounts[b] ? a : b, "N/A");
+            document.getElementById('stat-top-region').innerText = topRegion === "N/A" ? "---" : topRegion;
+
+            // Đếm tháng cao điểm
+            const monthCounts = {};
+            data.forEach(v => { 
+                if(v.ngayXayRa) {
+                    const m = v.ngayXayRa.substring(0, 7); // Lấy YYYY-MM
+                    monthCounts[m] = (monthCounts[m] || 0) + 1;
+                }
+            });
+            let topMonth = Object.keys(monthCounts).reduce((a, b) => monthCounts[a] > monthCounts[b] ? a : b, "N/A");
+            document.getElementById('stat-top-month').innerText = topMonth === "N/A" ? "---" : "Tháng " + topMonth.split('-')[1];
+        }
+
+        // --- CRUD ACTIONS ---
         async function saveData() {
             const payload = {
                 maVVP: document.getElementById('maVVP').value,
                 tenVVP: document.getElementById('tenVVP').value,
                 ngayXayRa: document.getElementById('ngayXayRa').value,
+                mucDo: document.getElementById('mucDo').value,
                 hinhThucXuLy: document.getElementById('hinhThucXuLy').value
             };
-
-            const url = isEdit ? `${apiBase}/update/${payload.maVVP}` : `${apiBase}/add`;
             const method = isEdit ? "PUT" : "POST";
+            const url = isEdit ? `${apiBase}/update/${payload.maVVP}` : `${apiBase}/add`;
 
             const res = await fetch(url, {
                 method: method,
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload)
             });
-
             if(res.ok) { closeModal(); loadData(); }
         }
 
@@ -156,6 +279,7 @@
                 document.getElementById('maVVP').disabled = true;
                 document.getElementById('tenVVP').value = v.tenVVP;
                 document.getElementById('ngayXayRa').value = v.ngayXayRa;
+                document.getElementById('mucDo').value = v.mucDo || "Nhẹ";
                 document.getElementById('hinhThucXuLy').value = v.hinhThucXuLy;
                 document.getElementById('vvpModal').style.display = "flex";
             }
@@ -171,18 +295,11 @@
         function openModal() {
             isEdit = false;
             document.getElementById('maVVP').disabled = false;
-            document.getElementById('maVVP').value = "";
-            document.getElementById('tenVVP').value = "";
+            ['maVVP', 'tenVVP', 'ngayXayRa', 'hinhThucXuLy'].forEach(id => document.getElementById(id).value = "");
             document.getElementById('vvpModal').style.display = "flex";
         }
         function closeModal() { document.getElementById('vvpModal').style.display = "none"; }
         function logout() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
-        
-        function filterData() {
-            const val = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allVVP.filter(v => v.tenVVP.toLowerCase().includes(val));
-            renderTable(filtered);
-        }
     </script>
 </body>
 </html>
