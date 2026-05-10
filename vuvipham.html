@@ -179,7 +179,7 @@
         async function loadData() {
             try {
                 // Gọi API lấy dữ liệu tổng hợp (Nếu bro chưa làm endpoint /summary, dùng tạm /all)
-                const res = await fetch(`${apiBase}/all`); 
+                const res = await fetch("https://demo-xo8t.onrender.com/api/vuvipham/summary"); 
                 allVVP = await res.json();
                 renderTable(allVVP);
                 updateStats(allVVP);
